@@ -1,0 +1,5 @@
+api/node_modules
+api/test
+api/*.test.js
+.git
+*.md

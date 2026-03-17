@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Enterprise Edge Platform</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <header>
+    <div class="logo-container">
+      <img src="/static/logo.svg" alt="Logo" class="logo" />
+      <h1>Enterprise Edge &amp; Security Platform</h1>
+    </div>
+    <p class="subtitle">Azure Front Door Premium — CDN + WAF Sandbox</p>
+  </header>
+  <main>
+    <section class="card">
+      <h2>Global CDN Delivery</h2>
+      <p>This page is served through Azure Front Door's global anycast network with geographically distributed PoPs, HTTP/2 support, and intelligent caching.</p>
+      <p><strong>Cache-Control:</strong> This HTML page is served with <code>Cache-Control: public, max-age=300</code>.</p>
+    </section>
+    <section class="card">
+      <h2>Cacheable Assets</h2>
+      <p>Click an asset to fetch it through Front Door and inspect cache behavior.</p>
+      <div class="demo-items">
+        <div class="demo-item">
+          <button class="btn" onclick="testCache('/static/style.css')">Fetch style.css</button>
+          <span class="demo-desc">1-year TTL, immutable — should be <strong>TCP_HIT</strong> after first request</span>
+          <span id="cache-style" class="demo-result"></span>
+        </div>
+        <div class="demo-item">
+          <button class="btn" onclick="testCache('/static/logo.svg')">Fetch logo.svg</button>
+          <span class="demo-desc">1-year TTL, immutable — should be <strong>TCP_HIT</strong> after first request</span>
+          <span id="cache-logo" class="demo-result"></span>
+        </div>
+        <div class="demo-item">
+          <button class="btn" onclick="testCache('/static/version.json')">Fetch version.json</button>
+          <span class="demo-desc">30s TTL — click twice: first <strong>TCP_MISS</strong>, then <strong>TCP_HIT</strong></span>
+          <span id="cache-version" class="demo-result"></span>
+        </div>
+      </div>
+    </section>
+    <section class="card">
+      <h2>API Endpoints</h2>
+      <p>Click an endpoint to call it live and see the response from the origin.</p>
+      <div class="demo-items">
+        <div class="demo-item">
+          <button class="btn" onclick="testApi('/api/health', 'api-health')">Call /api/health</button>
+          <span class="demo-desc">Health check (no-store) — shows region and uptime</span>
+          <span id="api-health" class="demo-result"></span>
+        </div>
+        <div class="demo-item">
+          <button class="btn" onclick="testApi('/api/time', 'api-time')">Call /api/time</button>
+          <span class="demo-desc">Current UTC time (no-store)</span>
+          <span id="api-time" class="demo-result"></span>
+        </div>
+        <div class="demo-item">
+          <button class="btn" onclick="testApi('/api/headers', 'api-headers')">Call /api/headers</button>
+          <span class="demo-desc">Echo Front Door injected headers</span>
+          <span id="api-headers" class="demo-result"></span>
+        </div>
+        <div class="demo-item">
+          <button class="btn" onclick="testApi('/api/cache-control?maxage=120', 'api-cache')">Call /api/cache-control</button>
+          <span class="demo-desc">Configurable cache (max-age=120)</span>
+          <span id="api-cache" class="demo-result"></span>
+        </div>
+      </div>
+    </section>
+    <section class="card">
+      <h2>WAF Demo Triggers (Safe)</h2>
+      <p>Click a button to fire a live request. The WAF evaluates every request at the edge before it reaches the origin.</p>
+      <div class="demo-items">
+        <div class="demo-item">
+          <button class="btn btn-danger" onclick="testWaf('block')">Trigger WAF Block</button>
+          <span class="demo-desc">Sends <code>?waf-test=block</code> — custom rule matches and returns <strong>403</strong></span>
+          <span id="result-block" class="demo-result"></span>
+        </div>
+        <div class="demo-item">
+          <button class="btn btn-safe" onclick="testWaf('normal')">Normal Request</button>
+          <span class="demo-desc">Clean request with no triggers — passes WAF inspection</span>
+          <span id="result-normal" class="demo-result"></span>
+        </div>
+      </div>
+      <details class="curl-demos">
+        <summary>Additional WAF demos (curl / terminal only)</summary>
+        <p>These rules rely on HTTP headers that browsers cannot override in <code>fetch()</code>. Run them from a terminal.</p>
+        <pre><code># Header-based block (custom rule: BlockDemoHeader)
+curl -s -o /dev/null -w "HTTP %{http_code}" -H "X-Demo-Block: true" \
+  "https://&lt;AFD_FQDN&gt;/api/health"
+# Expected: 403
+
+# Bot User-Agent block (custom rule: BlockDemoBotUA)
+curl -s -o /dev/null -w "HTTP %{http_code}" -A "DemoMaliciousBot/1.0" \
+  "https://&lt;AFD_FQDN&gt;/api/health"
+# Expected: 403</code></pre>
+      </details>
+      <script>
+        async function testWaf(type) {
+          const el = document.getElementById('result-' + type);
+          el.textContent = 'Testing…';
+          el.className = 'demo-result';
+          const url = type === 'block' ? '/api/health?waf-test=block' : '/api/health';
+          try {
+            const res = await fetch(url);
+            if (res.status === 403) {
+              el.textContent = '\u{1F6AB} Blocked by WAF (HTTP 403)';
+              el.classList.add('blocked');
+            } else if (res.status === 200) {
+              el.textContent = '\u2705 Allowed (HTTP 200)';
+              el.classList.add('passed');
+            } else {
+              el.textContent = 'HTTP ' + res.status;
+              el.classList.add('other');
+            }
+          } catch (e) {
+            el.textContent = 'Error: ' + e.message;
+            el.classList.add('other');
+          }
+        }
+
+        async function testCache(path) {
+          const id = 'cache-' + path.split('/').pop().replace('.', '');
+          const el = document.getElementById(id) || document.querySelector('[id^="cache-"]');
+          // Derive the element id from the path
+          const elMap = {
+            '/static/style.css': 'cache-style',
+            '/static/logo.svg': 'cache-logo',
+            '/static/version.json': 'cache-version'
+          };
+          const target = document.getElementById(elMap[path]);
+          if (!target) return;
+          target.textContent = 'Fetching…';
+          target.className = 'demo-result';
+          try {
+            // Bypass browser cache so we always hit Front Door and see CDN cache status
+            const res = await fetch(path, { cache: 'no-cache' });
+            const cacheStatus = res.headers.get('x-cache') || 'N/A';
+            const age = res.headers.get('age') || '0';
+            target.textContent = cacheStatus + ' · Age: ' + age + 's';
+            target.classList.add(cacheStatus.includes('HIT') ? 'cache-hit' : 'cache-miss');
+          } catch (e) {
+            target.textContent = 'Error: ' + e.message;
+            target.classList.add('other');
+          }
+        }
+
+        async function testApi(path, elId) {
+          const el = document.getElementById(elId);
+          el.textContent = 'Calling…';
+          el.className = 'demo-result';
+          const start = performance.now();
+          try {
+            const res = await fetch(path);
+            const ms = Math.round(performance.now() - start);
+            const data = await res.json();
+            const region = data.region || '';
+            el.textContent = 'HTTP ' + res.status + ' · ' + ms + 'ms' + (region ? ' · ' + region : '');
+            el.classList.add(res.status === 200 ? 'passed' : 'other');
+          } catch (e) {
+            el.textContent = 'Error: ' + e.message;
+            el.classList.add('other');
+          }
+        }
+      </script>
+    </section>
+  </main>
+  <footer>
+    <p>Demo Environment — Not for production use</p>
+  </footer>
+</body>
+</html>

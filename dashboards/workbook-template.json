@@ -1,0 +1,153 @@
+{
+  "version": "Notebook/1.0",
+  "items": [
+    {
+      "type": 1,
+      "content": {
+        "json": "# Azure Front Door \u2014 CDN + WAF Dashboard\n\nOperational visibility for the Azure Front Door sandbox."
+      },
+      "name": "header"
+    },
+    {
+      "type": 9,
+      "content": {
+        "version": "KqlParameterItem/1.0",
+        "parameters": [
+          {
+            "name": "TimeRange",
+            "type": 4,
+            "isRequired": true,
+            "value": {
+              "durationMs": 3600000
+            },
+            "typeSettings": {
+              "selectableValues": [
+                { "durationMs": 300000 },
+                { "durationMs": 900000 },
+                { "durationMs": 1800000 },
+                { "durationMs": 3600000 },
+                { "durationMs": 14400000 },
+                { "durationMs": 43200000 },
+                { "durationMs": 86400000 }
+              ]
+            }
+          }
+        ]
+      },
+      "name": "parameters"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## Traffic Overview"
+      },
+      "name": "section-traffic"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "AzureDiagnostics\n| where Category == \"FrontDoorAccessLog\"\n| where TimeGenerated {TimeRange}\n| summarize RequestCount = count() by bin(TimeGenerated, 5m)\n| render timechart",
+        "size": 0,
+        "title": "Requests Over Time",
+        "queryType": 0,
+        "visualization": "timechart"
+      },
+      "name": "requests-over-time"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "AzureDiagnostics\n| where Category == \"FrontDoorAccessLog\"\n| where TimeGenerated {TimeRange}\n| summarize Count = count() by httpStatusCode_s\n| render piechart",
+        "size": 1,
+        "title": "Response Status Codes",
+        "queryType": 0,
+        "visualization": "piechart"
+      },
+      "name": "status-codes"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## Cache Performance"
+      },
+      "name": "section-cache"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "AzureDiagnostics\n| where Category == \"FrontDoorAccessLog\"\n| where TimeGenerated {TimeRange}\n| summarize Count = count() by cacheStatus_s\n| render piechart",
+        "size": 1,
+        "title": "Cache Hit/Miss Ratio",
+        "queryType": 0,
+        "visualization": "piechart"
+      },
+      "name": "cache-hitrate"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "AzureDiagnostics\n| where Category == \"FrontDoorAccessLog\"\n| where TimeGenerated {TimeRange}\n| summarize AvgLatency = avg(timeTaken_d), P95 = percentile(timeTaken_d, 95) by bin(TimeGenerated, 5m)\n| render timechart",
+        "size": 0,
+        "title": "Latency (Avg & P95)",
+        "queryType": 0,
+        "visualization": "timechart"
+      },
+      "name": "latency"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## WAF / Security"
+      },
+      "name": "section-waf"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "AzureDiagnostics\n| where Category == \"FrontDoorWebApplicationFirewallLog\"\n| where TimeGenerated {TimeRange}\n| summarize Count = count() by action_s, ruleName_s\n| sort by Count desc",
+        "size": 0,
+        "title": "WAF Actions by Rule",
+        "queryType": 0,
+        "visualization": "table"
+      },
+      "name": "waf-actions"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "AzureDiagnostics\n| where Category == \"FrontDoorWebApplicationFirewallLog\"\n| where action_s == \"Block\"\n| where TimeGenerated {TimeRange}\n| summarize Blocks = count() by bin(TimeGenerated, 5m)\n| render timechart",
+        "size": 0,
+        "title": "WAF Blocks Over Time",
+        "queryType": 0,
+        "visualization": "timechart"
+      },
+      "name": "waf-blocks-time"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## Origin Health"
+      },
+      "name": "section-health"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "AzureDiagnostics\n| where Category == \"FrontDoorHealthProbeLog\"\n| where TimeGenerated {TimeRange}\n| summarize Count = count() by healthProbeStatus_s, originName_s\n| render barchart",
+        "size": 0,
+        "title": "Health Probe Results by Origin",
+        "queryType": 0,
+        "visualization": "barchart"
+      },
+      "name": "health-probes"
+    }
+  ],
+  "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
+}

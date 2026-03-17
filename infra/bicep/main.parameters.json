@@ -1,0 +1,24 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "prefix": {
+      "value": "afdemo"
+    },
+    "locationA": {
+      "value": "${AZURE_LOCATION}"
+    },
+    "locationB": {
+      "value": "westus2"
+    },
+    "wafMode": {
+      "value": "Prevention"
+    },
+    "rateLimitThreshold": {
+      "value": 100
+    },
+    "logRetentionDays": {
+      "value": 90
+    }
+  }
+}

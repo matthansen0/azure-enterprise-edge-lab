@@ -1,0 +1,31 @@
+{
+  "name": "Azure Front Door Sandbox",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-azuretools.vscode-bicep",
+        "ms-azuretools.vscode-azureresourcegroups",
+        "ms-vscode.azure-account",
+        "timonwong.shellcheck",
+        "esbenp.prettier-vscode",
+        "ms-azuretools.azure-dev"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  },
+  "postCreateCommand": "cd apps/api && npm install",
+  "remoteEnv": {
+    "DEMO_PREFIX": "afdemo",
+    "DEMO_LOCATION_A": "eastus2",
+    "DEMO_LOCATION_B": "westus2",
+    "DEMO_RG": "rg-afd-demo"
+  }
+}

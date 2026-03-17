@@ -1,0 +1,1777 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.37.4.10188",
+      "templateHash": "16524944038766782295"
+    }
+  },
+  "parameters": {
+    "prefix": {
+      "type": "string",
+      "defaultValue": "afdemo",
+      "metadata": {
+        "description": "Resource naming prefix (lowercase, no hyphens for storage)"
+      }
+    },
+    "locationA": {
+      "type": "string",
+      "defaultValue": "eastus2",
+      "metadata": {
+        "description": "Primary region"
+      }
+    },
+    "locationB": {
+      "type": "string",
+      "defaultValue": "westus2",
+      "metadata": {
+        "description": "Secondary region (failover)"
+      }
+    },
+    "wafMode": {
+      "type": "string",
+      "defaultValue": "Prevention",
+      "allowedValues": [
+        "Detection",
+        "Prevention"
+      ],
+      "metadata": {
+        "description": "WAF mode"
+      }
+    },
+    "rateLimitThreshold": {
+      "type": "int",
+      "defaultValue": 100,
+      "metadata": {
+        "description": "Rate limit threshold (requests per minute)"
+      }
+    },
+    "logRetentionDays": {
+      "type": "int",
+      "defaultValue": 90,
+      "metadata": {
+        "description": "Log retention days"
+      }
+    },
+    "tags": {
+      "type": "object",
+      "defaultValue": {
+        "environment": "demo",
+        "project": "afd-sandbox",
+        "purpose": "cdn-waf-sandbox"
+      },
+      "metadata": {
+        "description": "Tags applied to all resources"
+      }
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "log-analytics",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "prefix": {
+            "value": "[parameters('prefix')]"
+          },
+          "location": {
+            "value": "[parameters('locationA')]"
+          },
+          "retentionDays": {
+            "value": "[parameters('logRetentionDays')]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.37.4.10188",
+              "templateHash": "11073868606076265879"
+            }
+          },
+          "parameters": {
+            "prefix": {
+              "type": "string",
+              "metadata": {
+                "description": "Resource name prefix"
+              }
+            },
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Primary location"
+              }
+            },
+            "retentionDays": {
+              "type": "int",
+              "defaultValue": 90,
+              "metadata": {
+                "description": "Log retention in days"
+              }
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {},
+              "metadata": {
+                "description": "Tags"
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.OperationalInsights/workspaces",
+              "apiVersion": "2023-09-01",
+              "name": "[format('{0}-law', parameters('prefix'))]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "sku": {
+                  "name": "PerGB2018"
+                },
+                "retentionInDays": "[parameters('retentionDays')]"
+              }
+            },
+            {
+              "type": "Microsoft.OperationsManagement/solutions",
+              "apiVersion": "2015-11-01-preview",
+              "name": "[format('SecurityInsights({0})', format('{0}-law', parameters('prefix')))]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "workspaceResourceId": "[resourceId('Microsoft.OperationalInsights/workspaces', format('{0}-law', parameters('prefix')))]"
+              },
+              "plan": {
+                "name": "[format('SecurityInsights({0})', format('{0}-law', parameters('prefix')))]",
+                "publisher": "Microsoft",
+                "product": "OMSGallery/SecurityInsights",
+                "promotionCode": ""
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.OperationalInsights/workspaces', format('{0}-law', parameters('prefix')))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "workspaceId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.OperationalInsights/workspaces', format('{0}-law', parameters('prefix')))]"
+            },
+            "workspaceName": {
+              "type": "string",
+              "value": "[format('{0}-law', parameters('prefix'))]"
+            },
+            "workspaceCustomerId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.OperationalInsights/workspaces', format('{0}-law', parameters('prefix'))), '2023-09-01').customerId]"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "waf-policy",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "prefix": {
+            "value": "[parameters('prefix')]"
+          },
+          "mode": {
+            "value": "[parameters('wafMode')]"
+          },
+          "rateLimitThreshold": {
+            "value": "[parameters('rateLimitThreshold')]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.37.4.10188",
+              "templateHash": "14697375007114271188"
+            }
+          },
+          "parameters": {
+            "prefix": {
+              "type": "string",
+              "metadata": {
+                "description": "Resource name prefix"
+              }
+            },
+            "location": {
+              "type": "string",
+              "defaultValue": "global",
+              "metadata": {
+                "description": "Location"
+              }
+            },
+            "mode": {
+              "type": "string",
+              "defaultValue": "Prevention",
+              "allowedValues": [
+                "Detection",
+                "Prevention"
+              ],
+              "metadata": {
+                "description": "WAF mode: Detection or Prevention"
+              }
+            },
+            "rateLimitThreshold": {
+              "type": "int",
+              "defaultValue": 100,
+              "metadata": {
+                "description": "Rate limit threshold (requests per minute)"
+              }
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {},
+              "metadata": {
+                "description": "Tags"
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Network/FrontDoorWebApplicationFirewallPolicies",
+              "apiVersion": "2024-02-01",
+              "name": "[format('{0}wafpolicy', parameters('prefix'))]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "sku": {
+                "name": "Premium_AzureFrontDoor"
+              },
+              "properties": {
+                "policySettings": {
+                  "enabledState": "Enabled",
+                  "mode": "[parameters('mode')]",
+                  "requestBodyCheck": "Enabled"
+                },
+                "managedRules": {
+                  "managedRuleSets": [
+                    {
+                      "ruleSetType": "Microsoft_DefaultRuleSet",
+                      "ruleSetVersion": "2.1",
+                      "ruleSetAction": "Block"
+                    },
+                    {
+                      "ruleSetType": "Microsoft_BotManagerRuleSet",
+                      "ruleSetVersion": "1.1"
+                    }
+                  ]
+                },
+                "customRules": {
+                  "rules": [
+                    {
+                      "name": "BlockDemoHeader",
+                      "priority": 100,
+                      "ruleType": "MatchRule",
+                      "action": "Block",
+                      "matchConditions": [
+                        {
+                          "matchVariable": "RequestHeader",
+                          "selector": "X-Demo-Block",
+                          "operator": "Equal",
+                          "matchValue": [
+                            "true"
+                          ],
+                          "transforms": [
+                            "Lowercase"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "name": "BlockDemoQueryParam",
+                      "priority": 150,
+                      "ruleType": "MatchRule",
+                      "action": "Block",
+                      "matchConditions": [
+                        {
+                          "matchVariable": "QueryString",
+                          "operator": "Contains",
+                          "matchValue": [
+                            "waf-test=block"
+                          ],
+                          "transforms": [
+                            "Lowercase"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "name": "RateLimitPerIP",
+                      "priority": 200,
+                      "ruleType": "RateLimitRule",
+                      "action": "Block",
+                      "rateLimitDurationInMinutes": 1,
+                      "rateLimitThreshold": "[parameters('rateLimitThreshold')]",
+                      "matchConditions": [
+                        {
+                          "matchVariable": "RequestUri",
+                          "operator": "RegEx",
+                          "matchValue": [
+                            ".+"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "name": "BlockDemoBotUA",
+                      "priority": 300,
+                      "ruleType": "MatchRule",
+                      "action": "Block",
+                      "matchConditions": [
+                        {
+                          "matchVariable": "RequestHeader",
+                          "selector": "User-Agent",
+                          "operator": "Contains",
+                          "matchValue": [
+                            "demomaliciousbot/1.0"
+                          ],
+                          "transforms": [
+                            "Lowercase"
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "outputs": {
+            "wafPolicyId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Network/FrontDoorWebApplicationFirewallPolicies', format('{0}wafpolicy', parameters('prefix')))]"
+            },
+            "wafPolicyName": {
+              "type": "string",
+              "value": "[format('{0}wafpolicy', parameters('prefix'))]"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "container-registry",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "prefix": {
+            "value": "[parameters('prefix')]"
+          },
+          "location": {
+            "value": "[parameters('locationA')]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.37.4.10188",
+              "templateHash": "11472169059869208085"
+            }
+          },
+          "parameters": {
+            "prefix": {
+              "type": "string",
+              "metadata": {
+                "description": "Resource name prefix"
+              }
+            },
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Location for the ACR"
+              }
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {},
+              "metadata": {
+                "description": "Tags"
+              }
+            }
+          },
+          "variables": {
+            "acrName": "[format('{0}acr{1}', parameters('prefix'), uniqueString(resourceGroup().id))]"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.ContainerRegistry/registries",
+              "apiVersion": "2023-07-01",
+              "name": "[take(variables('acrName'), 50)]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "sku": {
+                "name": "Basic"
+              },
+              "properties": {
+                "adminUserEnabled": true
+              }
+            }
+          ],
+          "outputs": {
+            "acrName": {
+              "type": "string",
+              "value": "[take(variables('acrName'), 50)]"
+            },
+            "acrLoginServer": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.ContainerRegistry/registries', take(variables('acrName'), 50)), '2023-07-01').loginServer]"
+            },
+            "acrId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.ContainerRegistry/registries', take(variables('acrName'), 50))]"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "origin-a",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "prefix": {
+            "value": "[parameters('prefix')]"
+          },
+          "location": {
+            "value": "[parameters('locationA')]"
+          },
+          "originLabel": {
+            "value": "a"
+          },
+          "serviceName": {
+            "value": "origin-a"
+          },
+          "acrLoginServer": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'container-registry'), '2022-09-01').outputs.acrLoginServer.value]"
+          },
+          "acrName": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'container-registry'), '2022-09-01').outputs.acrName.value]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.37.4.10188",
+              "templateHash": "16310998261791860032"
+            }
+          },
+          "parameters": {
+            "prefix": {
+              "type": "string",
+              "metadata": {
+                "description": "Resource name prefix"
+              }
+            },
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Location for this origin"
+              }
+            },
+            "originLabel": {
+              "type": "string",
+              "metadata": {
+                "description": "Origin label (e.g., a, b)"
+              }
+            },
+            "serviceName": {
+              "type": "string",
+              "defaultValue": "",
+              "metadata": {
+                "description": "azd service name for deployment targeting"
+              }
+            },
+            "acrLoginServer": {
+              "type": "string",
+              "defaultValue": "",
+              "metadata": {
+                "description": "ACR login server (e.g., myacr.azurecr.io)"
+              }
+            },
+            "acrName": {
+              "type": "string",
+              "defaultValue": "",
+              "metadata": {
+                "description": "ACR resource name"
+              }
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {},
+              "metadata": {
+                "description": "Tags"
+              }
+            }
+          },
+          "variables": {
+            "envName": "[format('{0}-cae-{1}', parameters('prefix'), parameters('originLabel'))]",
+            "appName": "[format('{0}-origin-{1}', parameters('prefix'), parameters('originLabel'))]",
+            "azdTag": "[if(empty(parameters('serviceName')), createObject(), createObject('azd-service-name', parameters('serviceName')))]"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.App/managedEnvironments",
+              "apiVersion": "2024-03-01",
+              "name": "[variables('envName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {}
+            },
+            {
+              "type": "Microsoft.App/containerApps",
+              "apiVersion": "2024-03-01",
+              "name": "[variables('appName')]",
+              "location": "[parameters('location')]",
+              "tags": "[union(parameters('tags'), createObject('originLabel', parameters('originLabel')), variables('azdTag'))]",
+              "properties": {
+                "managedEnvironmentId": "[resourceId('Microsoft.App/managedEnvironments', variables('envName'))]",
+                "configuration": {
+                  "secrets": [
+                    {
+                      "name": "acr-password",
+                      "value": "[listCredentials(resourceId('Microsoft.ContainerRegistry/registries', parameters('acrName')), '2023-07-01').passwords[0].value]"
+                    }
+                  ],
+                  "registries": [
+                    {
+                      "server": "[parameters('acrLoginServer')]",
+                      "username": "[listCredentials(resourceId('Microsoft.ContainerRegistry/registries', parameters('acrName')), '2023-07-01').username]",
+                      "passwordSecretRef": "acr-password"
+                    }
+                  ],
+                  "ingress": {
+                    "external": true,
+                    "targetPort": 8080,
+                    "transport": "http",
+                    "allowInsecure": false
+                  }
+                },
+                "template": {
+                  "containers": [
+                    {
+                      "name": "api",
+                      "image": "mcr.microsoft.com/k8se/quickstart:latest",
+                      "resources": {
+                        "cpu": "[json('0.25')]",
+                        "memory": "0.5Gi"
+                      },
+                      "env": [
+                        {
+                          "name": "PORT",
+                          "value": "8080"
+                        }
+                      ]
+                    }
+                  ],
+                  "scale": {
+                    "minReplicas": 1,
+                    "maxReplicas": 3
+                  }
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.App/managedEnvironments', variables('envName'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "appName": {
+              "type": "string",
+              "value": "[variables('appName')]"
+            },
+            "hostname": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.App/containerApps', variables('appName')), '2024-03-01').configuration.ingress.fqdn]"
+            },
+            "appId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.App/containerApps', variables('appName'))]"
+            },
+            "environmentName": {
+              "type": "string",
+              "value": "[variables('envName')]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', 'container-registry')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "origin-b",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "prefix": {
+            "value": "[parameters('prefix')]"
+          },
+          "location": {
+            "value": "[parameters('locationB')]"
+          },
+          "originLabel": {
+            "value": "b"
+          },
+          "serviceName": {
+            "value": "origin-b"
+          },
+          "acrLoginServer": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'container-registry'), '2022-09-01').outputs.acrLoginServer.value]"
+          },
+          "acrName": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'container-registry'), '2022-09-01').outputs.acrName.value]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.37.4.10188",
+              "templateHash": "16310998261791860032"
+            }
+          },
+          "parameters": {
+            "prefix": {
+              "type": "string",
+              "metadata": {
+                "description": "Resource name prefix"
+              }
+            },
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Location for this origin"
+              }
+            },
+            "originLabel": {
+              "type": "string",
+              "metadata": {
+                "description": "Origin label (e.g., a, b)"
+              }
+            },
+            "serviceName": {
+              "type": "string",
+              "defaultValue": "",
+              "metadata": {
+                "description": "azd service name for deployment targeting"
+              }
+            },
+            "acrLoginServer": {
+              "type": "string",
+              "defaultValue": "",
+              "metadata": {
+                "description": "ACR login server (e.g., myacr.azurecr.io)"
+              }
+            },
+            "acrName": {
+              "type": "string",
+              "defaultValue": "",
+              "metadata": {
+                "description": "ACR resource name"
+              }
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {},
+              "metadata": {
+                "description": "Tags"
+              }
+            }
+          },
+          "variables": {
+            "envName": "[format('{0}-cae-{1}', parameters('prefix'), parameters('originLabel'))]",
+            "appName": "[format('{0}-origin-{1}', parameters('prefix'), parameters('originLabel'))]",
+            "azdTag": "[if(empty(parameters('serviceName')), createObject(), createObject('azd-service-name', parameters('serviceName')))]"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.App/managedEnvironments",
+              "apiVersion": "2024-03-01",
+              "name": "[variables('envName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {}
+            },
+            {
+              "type": "Microsoft.App/containerApps",
+              "apiVersion": "2024-03-01",
+              "name": "[variables('appName')]",
+              "location": "[parameters('location')]",
+              "tags": "[union(parameters('tags'), createObject('originLabel', parameters('originLabel')), variables('azdTag'))]",
+              "properties": {
+                "managedEnvironmentId": "[resourceId('Microsoft.App/managedEnvironments', variables('envName'))]",
+                "configuration": {
+                  "secrets": [
+                    {
+                      "name": "acr-password",
+                      "value": "[listCredentials(resourceId('Microsoft.ContainerRegistry/registries', parameters('acrName')), '2023-07-01').passwords[0].value]"
+                    }
+                  ],
+                  "registries": [
+                    {
+                      "server": "[parameters('acrLoginServer')]",
+                      "username": "[listCredentials(resourceId('Microsoft.ContainerRegistry/registries', parameters('acrName')), '2023-07-01').username]",
+                      "passwordSecretRef": "acr-password"
+                    }
+                  ],
+                  "ingress": {
+                    "external": true,
+                    "targetPort": 8080,
+                    "transport": "http",
+                    "allowInsecure": false
+                  }
+                },
+                "template": {
+                  "containers": [
+                    {
+                      "name": "api",
+                      "image": "mcr.microsoft.com/k8se/quickstart:latest",
+                      "resources": {
+                        "cpu": "[json('0.25')]",
+                        "memory": "0.5Gi"
+                      },
+                      "env": [
+                        {
+                          "name": "PORT",
+                          "value": "8080"
+                        }
+                      ]
+                    }
+                  ],
+                  "scale": {
+                    "minReplicas": 1,
+                    "maxReplicas": 3
+                  }
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.App/managedEnvironments', variables('envName'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "appName": {
+              "type": "string",
+              "value": "[variables('appName')]"
+            },
+            "hostname": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.App/containerApps', variables('appName')), '2024-03-01').configuration.ingress.fqdn]"
+            },
+            "appId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.App/containerApps', variables('appName'))]"
+            },
+            "environmentName": {
+              "type": "string",
+              "value": "[variables('envName')]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', 'container-registry')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "frontdoor",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "prefix": {
+            "value": "[parameters('prefix')]"
+          },
+          "originAHostname": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'origin-a'), '2022-09-01').outputs.hostname.value]"
+          },
+          "originBHostname": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'origin-b'), '2022-09-01').outputs.hostname.value]"
+          },
+          "wafPolicyId": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'waf-policy'), '2022-09-01').outputs.wafPolicyId.value]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.37.4.10188",
+              "templateHash": "1463113600144478996"
+            }
+          },
+          "parameters": {
+            "prefix": {
+              "type": "string",
+              "metadata": {
+                "description": "Resource name prefix"
+              }
+            },
+            "originAHostname": {
+              "type": "string",
+              "metadata": {
+                "description": "Origin A hostname"
+              }
+            },
+            "originBHostname": {
+              "type": "string",
+              "metadata": {
+                "description": "Origin B hostname"
+              }
+            },
+            "wafPolicyId": {
+              "type": "string",
+              "metadata": {
+                "description": "WAF Policy ID"
+              }
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {},
+              "metadata": {
+                "description": "Tags"
+              }
+            },
+            "customDomainPrefixes": {
+              "type": "array",
+              "defaultValue": [
+                "www",
+                "api",
+                "cdn",
+                "portal"
+              ],
+              "metadata": {
+                "description": "Placeholder custom domains (for multi-subdomain demo config)"
+              }
+            },
+            "baseDomain": {
+              "type": "string",
+              "defaultValue": "demo.example.com",
+              "metadata": {
+                "description": "Base domain for placeholder custom domains"
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Cdn/profiles",
+              "apiVersion": "2024-02-01",
+              "name": "[format('{0}-afd', parameters('prefix'))]",
+              "location": "global",
+              "tags": "[parameters('tags')]",
+              "sku": {
+                "name": "Premium_AzureFrontDoor"
+              },
+              "properties": {
+                "originResponseTimeoutSeconds": 60
+              }
+            },
+            {
+              "type": "Microsoft.Cdn/profiles/afdEndpoints",
+              "apiVersion": "2024-02-01",
+              "name": "[format('{0}/{1}', format('{0}-afd', parameters('prefix')), format('{0}-endpoint', parameters('prefix')))]",
+              "location": "global",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "enabledState": "Enabled"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Cdn/profiles', format('{0}-afd', parameters('prefix')))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Cdn/profiles/originGroups",
+              "apiVersion": "2024-02-01",
+              "name": "[format('{0}/{1}', format('{0}-afd', parameters('prefix')), 'default-origin-group')]",
+              "properties": {
+                "loadBalancingSettings": {
+                  "sampleSize": 4,
+                  "successfulSamplesRequired": 3,
+                  "additionalLatencyInMilliseconds": 50
+                },
+                "healthProbeSettings": {
+                  "probePath": "/api/health",
+                  "probeRequestType": "GET",
+                  "probeProtocol": "Https",
+                  "probeIntervalInSeconds": 30
+                },
+                "sessionAffinityState": "Disabled"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Cdn/profiles', format('{0}-afd', parameters('prefix')))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Cdn/profiles/originGroups/origins",
+              "apiVersion": "2024-02-01",
+              "name": "[format('{0}/{1}/{2}', format('{0}-afd', parameters('prefix')), 'default-origin-group', 'origin-a')]",
+              "properties": {
+                "hostName": "[parameters('originAHostname')]",
+                "httpPort": 80,
+                "httpsPort": 443,
+                "originHostHeader": "[parameters('originAHostname')]",
+                "priority": 1,
+                "weight": 1000,
+                "enabledState": "Enabled",
+                "enforceCertificateNameCheck": true
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Cdn/profiles/originGroups', format('{0}-afd', parameters('prefix')), 'default-origin-group')]"
+              ]
+            },
+            {
+              "type": "Microsoft.Cdn/profiles/originGroups/origins",
+              "apiVersion": "2024-02-01",
+              "name": "[format('{0}/{1}/{2}', format('{0}-afd', parameters('prefix')), 'default-origin-group', 'origin-b')]",
+              "properties": {
+                "hostName": "[parameters('originBHostname')]",
+                "httpPort": 80,
+                "httpsPort": 443,
+                "originHostHeader": "[parameters('originBHostname')]",
+                "priority": 2,
+                "weight": 1000,
+                "enabledState": "Enabled",
+                "enforceCertificateNameCheck": true
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Cdn/profiles/originGroups', format('{0}-afd', parameters('prefix')), 'default-origin-group')]"
+              ]
+            },
+            {
+              "type": "Microsoft.Cdn/profiles/securityPolicies",
+              "apiVersion": "2024-02-01",
+              "name": "[format('{0}/{1}', format('{0}-afd', parameters('prefix')), 'waf-security-policy')]",
+              "properties": {
+                "parameters": {
+                  "type": "WebApplicationFirewall",
+                  "wafPolicy": {
+                    "id": "[parameters('wafPolicyId')]"
+                  },
+                  "associations": [
+                    {
+                      "domains": [
+                        {
+                          "id": "[resourceId('Microsoft.Cdn/profiles/afdEndpoints', format('{0}-afd', parameters('prefix')), format('{0}-endpoint', parameters('prefix')))]"
+                        }
+                      ],
+                      "patternsToMatch": [
+                        "/*"
+                      ]
+                    }
+                  ]
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Cdn/profiles/afdEndpoints', format('{0}-afd', parameters('prefix')), format('{0}-endpoint', parameters('prefix')))]",
+                "[resourceId('Microsoft.Cdn/profiles', format('{0}-afd', parameters('prefix')))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Cdn/profiles/ruleSets",
+              "apiVersion": "2024-02-01",
+              "name": "[format('{0}/{1}', format('{0}-afd', parameters('prefix')), 'CachingRules')]",
+              "dependsOn": [
+                "[resourceId('Microsoft.Cdn/profiles', format('{0}-afd', parameters('prefix')))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Cdn/profiles/ruleSets/rules",
+              "apiVersion": "2024-02-01",
+              "name": "[format('{0}/{1}/{2}', format('{0}-afd', parameters('prefix')), 'CachingRules', 'OverrideStaticTTL')]",
+              "properties": {
+                "order": 1,
+                "conditions": [
+                  {
+                    "name": "UrlPath",
+                    "parameters": {
+                      "typeName": "DeliveryRuleUrlPathMatchConditionParameters",
+                      "operator": "BeginsWith",
+                      "matchValues": [
+                        "/static/"
+                      ],
+                      "transforms": [
+                        "Lowercase"
+                      ]
+                    }
+                  }
+                ],
+                "actions": [
+                  {
+                    "name": "RouteConfigurationOverride",
+                    "parameters": {
+                      "typeName": "DeliveryRuleRouteConfigurationOverrideActionParameters",
+                      "cacheConfiguration": {
+                        "queryStringCachingBehavior": "IgnoreQueryString",
+                        "cacheBehavior": "HonorOrigin",
+                        "isCompressionEnabled": "Enabled"
+                      }
+                    }
+                  }
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Cdn/profiles/ruleSets', format('{0}-afd', parameters('prefix')), 'CachingRules')]"
+              ]
+            },
+            {
+              "type": "Microsoft.Cdn/profiles/ruleSets/rules",
+              "apiVersion": "2024-02-01",
+              "name": "[format('{0}/{1}/{2}', format('{0}-afd', parameters('prefix')), 'CachingRules', 'RespectOriginApiCache')]",
+              "properties": {
+                "order": 2,
+                "conditions": [
+                  {
+                    "name": "UrlPath",
+                    "parameters": {
+                      "typeName": "DeliveryRuleUrlPathMatchConditionParameters",
+                      "operator": "BeginsWith",
+                      "matchValues": [
+                        "/api/"
+                      ],
+                      "transforms": [
+                        "Lowercase"
+                      ]
+                    }
+                  }
+                ],
+                "actions": [
+                  {
+                    "name": "RouteConfigurationOverride",
+                    "parameters": {
+                      "typeName": "DeliveryRuleRouteConfigurationOverrideActionParameters",
+                      "cacheConfiguration": {
+                        "queryStringCachingBehavior": "UseQueryString",
+                        "cacheBehavior": "HonorOrigin",
+                        "isCompressionEnabled": "Enabled"
+                      }
+                    }
+                  }
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Cdn/profiles/ruleSets', format('{0}-afd', parameters('prefix')), 'CachingRules')]"
+              ]
+            },
+            {
+              "type": "Microsoft.Cdn/profiles/afdEndpoints/routes",
+              "apiVersion": "2024-02-01",
+              "name": "[format('{0}/{1}/{2}', format('{0}-afd', parameters('prefix')), format('{0}-endpoint', parameters('prefix')), 'default-route')]",
+              "properties": {
+                "originGroup": {
+                  "id": "[resourceId('Microsoft.Cdn/profiles/originGroups', format('{0}-afd', parameters('prefix')), 'default-origin-group')]"
+                },
+                "ruleSets": [
+                  {
+                    "id": "[resourceId('Microsoft.Cdn/profiles/ruleSets', format('{0}-afd', parameters('prefix')), 'CachingRules')]"
+                  }
+                ],
+                "supportedProtocols": [
+                  "Http",
+                  "Https"
+                ],
+                "patternsToMatch": [
+                  "/*"
+                ],
+                "forwardingProtocol": "HttpsOnly",
+                "httpsRedirect": "Enabled",
+                "linkToDefaultDomain": "Enabled",
+                "cacheConfiguration": {
+                  "queryStringCachingBehavior": "UseQueryString",
+                  "compressionSettings": {
+                    "isCompressionEnabled": true,
+                    "contentTypesToCompress": [
+                      "text/html",
+                      "text/css",
+                      "application/javascript",
+                      "application/json",
+                      "image/svg+xml",
+                      "text/plain"
+                    ]
+                  }
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Cdn/profiles/ruleSets/rules', format('{0}-afd', parameters('prefix')), 'CachingRules', 'RespectOriginApiCache')]",
+                "[resourceId('Microsoft.Cdn/profiles/afdEndpoints', format('{0}-afd', parameters('prefix')), format('{0}-endpoint', parameters('prefix')))]",
+                "[resourceId('Microsoft.Cdn/profiles/originGroups/origins', format('{0}-afd', parameters('prefix')), 'default-origin-group', 'origin-a')]",
+                "[resourceId('Microsoft.Cdn/profiles/originGroups/origins', format('{0}-afd', parameters('prefix')), 'default-origin-group', 'origin-b')]",
+                "[resourceId('Microsoft.Cdn/profiles/originGroups', format('{0}-afd', parameters('prefix')), 'default-origin-group')]",
+                "[resourceId('Microsoft.Cdn/profiles/ruleSets', format('{0}-afd', parameters('prefix')), 'CachingRules')]",
+                "[resourceId('Microsoft.Cdn/profiles/securityPolicies', format('{0}-afd', parameters('prefix')), 'waf-security-policy')]",
+                "[resourceId('Microsoft.Cdn/profiles/ruleSets/rules', format('{0}-afd', parameters('prefix')), 'CachingRules', 'OverrideStaticTTL')]"
+              ]
+            }
+          ],
+          "outputs": {
+            "profileName": {
+              "type": "string",
+              "value": "[format('{0}-afd', parameters('prefix'))]"
+            },
+            "profileId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Cdn/profiles', format('{0}-afd', parameters('prefix')))]"
+            },
+            "endpointName": {
+              "type": "string",
+              "value": "[format('{0}-endpoint', parameters('prefix'))]"
+            },
+            "endpointHostName": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Cdn/profiles/afdEndpoints', format('{0}-afd', parameters('prefix')), format('{0}-endpoint', parameters('prefix'))), '2024-02-01').hostName]"
+            },
+            "originGroupName": {
+              "type": "string",
+              "value": "default-origin-group"
+            },
+            "customDomainConfig": {
+              "type": "array",
+              "copy": {
+                "count": "[length(parameters('customDomainPrefixes'))]",
+                "input": {
+                  "subdomain": "[format('{0}.{1}', parameters('customDomainPrefixes')[copyIndex()], parameters('baseDomain'))]",
+                  "note": "[format('Placeholder — configure DNS CNAME to {0}', reference(resourceId('Microsoft.Cdn/profiles/afdEndpoints', format('{0}-afd', parameters('prefix')), format('{0}-endpoint', parameters('prefix'))), '2024-02-01').hostName)]"
+                }
+              }
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', 'origin-a')]",
+        "[resourceId('Microsoft.Resources/deployments', 'origin-b')]",
+        "[resourceId('Microsoft.Resources/deployments', 'waf-policy')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "diagnostics",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "prefix": {
+            "value": "[parameters('prefix')]"
+          },
+          "frontDoorProfileName": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'frontdoor'), '2022-09-01').outputs.profileName.value]"
+          },
+          "workspaceId": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'log-analytics'), '2022-09-01').outputs.workspaceId.value]"
+          },
+          "caeNameA": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'origin-a'), '2022-09-01').outputs.environmentName.value]"
+          },
+          "caeNameB": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'origin-b'), '2022-09-01').outputs.environmentName.value]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.37.4.10188",
+              "templateHash": "12145870379921159877"
+            }
+          },
+          "parameters": {
+            "frontDoorProfileName": {
+              "type": "string",
+              "metadata": {
+                "description": "Front Door profile name"
+              }
+            },
+            "workspaceId": {
+              "type": "string",
+              "metadata": {
+                "description": "Log Analytics workspace ID"
+              }
+            },
+            "prefix": {
+              "type": "string",
+              "metadata": {
+                "description": "Resource name prefix"
+              }
+            },
+            "caeNameA": {
+              "type": "string",
+              "defaultValue": "",
+              "metadata": {
+                "description": "Container Apps Environment name for origin A"
+              }
+            },
+            "caeNameB": {
+              "type": "string",
+              "defaultValue": "",
+              "metadata": {
+                "description": "Container Apps Environment name for origin B"
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Insights/diagnosticSettings",
+              "apiVersion": "2021-05-01-preview",
+              "scope": "[format('Microsoft.Cdn/profiles/{0}', parameters('frontDoorProfileName'))]",
+              "name": "[format('{0}-afd-diag', parameters('prefix'))]",
+              "properties": {
+                "workspaceId": "[parameters('workspaceId')]",
+                "logAnalyticsDestinationType": "Dedicated",
+                "logs": [
+                  {
+                    "category": "FrontDoorAccessLog",
+                    "enabled": true
+                  },
+                  {
+                    "category": "FrontDoorHealthProbeLog",
+                    "enabled": true
+                  },
+                  {
+                    "category": "FrontDoorWebApplicationFirewallLog",
+                    "enabled": true
+                  }
+                ],
+                "metrics": [
+                  {
+                    "category": "AllMetrics",
+                    "enabled": true
+                  }
+                ]
+              }
+            },
+            {
+              "condition": "[not(empty(parameters('caeNameA')))]",
+              "type": "Microsoft.Insights/diagnosticSettings",
+              "apiVersion": "2021-05-01-preview",
+              "scope": "[format('Microsoft.App/managedEnvironments/{0}', parameters('caeNameA'))]",
+              "name": "[format('{0}-cae-a-diag', parameters('prefix'))]",
+              "properties": {
+                "workspaceId": "[parameters('workspaceId')]",
+                "logs": [
+                  {
+                    "category": "ContainerAppConsoleLogs",
+                    "enabled": true
+                  },
+                  {
+                    "category": "ContainerAppSystemLogs",
+                    "enabled": true
+                  }
+                ],
+                "metrics": [
+                  {
+                    "category": "AllMetrics",
+                    "enabled": true
+                  }
+                ]
+              }
+            },
+            {
+              "condition": "[not(empty(parameters('caeNameB')))]",
+              "type": "Microsoft.Insights/diagnosticSettings",
+              "apiVersion": "2021-05-01-preview",
+              "scope": "[format('Microsoft.App/managedEnvironments/{0}', parameters('caeNameB'))]",
+              "name": "[format('{0}-cae-b-diag', parameters('prefix'))]",
+              "properties": {
+                "workspaceId": "[parameters('workspaceId')]",
+                "logs": [
+                  {
+                    "category": "ContainerAppConsoleLogs",
+                    "enabled": true
+                  },
+                  {
+                    "category": "ContainerAppSystemLogs",
+                    "enabled": true
+                  }
+                ],
+                "metrics": [
+                  {
+                    "category": "AllMetrics",
+                    "enabled": true
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', 'frontdoor')]",
+        "[resourceId('Microsoft.Resources/deployments', 'log-analytics')]",
+        "[resourceId('Microsoft.Resources/deployments', 'origin-a')]",
+        "[resourceId('Microsoft.Resources/deployments', 'origin-b')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "sentinel-content",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "workspaceId": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'log-analytics'), '2022-09-01').outputs.workspaceId.value]"
+          },
+          "workspaceName": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'log-analytics'), '2022-09-01').outputs.workspaceName.value]"
+          },
+          "location": {
+            "value": "[parameters('locationA')]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.37.4.10188",
+              "templateHash": "8986278649945163646"
+            }
+          },
+          "parameters": {
+            "workspaceId": {
+              "type": "string",
+              "metadata": {
+                "description": "Log Analytics workspace resource ID"
+              }
+            },
+            "workspaceName": {
+              "type": "string",
+              "metadata": {
+                "description": "Log Analytics workspace name"
+              }
+            },
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Location"
+              }
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {},
+              "metadata": {
+                "description": "Tags"
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.OperationsManagement/solutions",
+              "apiVersion": "2015-11-01-preview",
+              "name": "[format('ContainerInsights({0})', parameters('workspaceName'))]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "workspaceResourceId": "[parameters('workspaceId')]"
+              },
+              "plan": {
+                "name": "[format('ContainerInsights({0})', parameters('workspaceName'))]",
+                "publisher": "Microsoft",
+                "product": "OMSGallery/ContainerInsights",
+                "promotionCode": ""
+              }
+            },
+            {
+              "type": "Microsoft.OperationsManagement/solutions",
+              "apiVersion": "2015-11-01-preview",
+              "name": "[format('Security({0})', parameters('workspaceName'))]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "workspaceResourceId": "[parameters('workspaceId')]"
+              },
+              "plan": {
+                "name": "[format('Security({0})', parameters('workspaceName'))]",
+                "publisher": "Microsoft",
+                "product": "OMSGallery/Security",
+                "promotionCode": ""
+              }
+            },
+            {
+              "type": "Microsoft.SecurityInsights/contentPackages",
+              "apiVersion": "2024-01-01-preview",
+              "scope": "[format('Microsoft.OperationalInsights/workspaces/{0}', parameters('workspaceName'))]",
+              "name": "azuresentinel.azure-sentinel-solution-azurewebapplicationfirewall",
+              "properties": {
+                "contentId": "azuresentinel.azure-sentinel-solution-azurewebapplicationfirewall",
+                "contentProductId": "[format('azuresentinel.azure-sentinel-solution-azurewebapplicationfirewall-sl-{0}', uniqueString(parameters('workspaceId')))]",
+                "displayName": "Azure Web Application Firewall",
+                "contentKind": "Solution",
+                "contentSchemaVersion": "3.0.0",
+                "version": "1.0.0",
+                "isNew": "false",
+                "isPreview": "false",
+                "isFeatured": "false"
+              },
+              "dependsOn": [
+                "[extensionResourceId(resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspaceName')), 'Microsoft.SecurityInsights/onboardingStates', 'default')]"
+              ]
+            },
+            {
+              "type": "Microsoft.SecurityInsights/contentPackages",
+              "apiVersion": "2024-01-01-preview",
+              "scope": "[format('Microsoft.OperationalInsights/workspaces/{0}', parameters('workspaceName'))]",
+              "name": "azuresentinel.azure-sentinel-solution-networksession",
+              "properties": {
+                "contentId": "azuresentinel.azure-sentinel-solution-networksession",
+                "contentProductId": "[format('azuresentinel.azure-sentinel-solution-networksession-sl-{0}', uniqueString(parameters('workspaceId')))]",
+                "displayName": "Network Session Essentials",
+                "contentKind": "Solution",
+                "contentSchemaVersion": "3.0.0",
+                "version": "1.0.0",
+                "isNew": "false",
+                "isPreview": "false",
+                "isFeatured": "false"
+              },
+              "dependsOn": [
+                "[extensionResourceId(resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspaceName')), 'Microsoft.SecurityInsights/onboardingStates', 'default')]"
+              ]
+            },
+            {
+              "type": "Microsoft.SecurityInsights/onboardingStates",
+              "apiVersion": "2024-01-01-preview",
+              "scope": "[format('Microsoft.OperationalInsights/workspaces/{0}', parameters('workspaceName'))]",
+              "name": "default",
+              "properties": {}
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', 'log-analytics')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "monitor-workbooks",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "prefix": {
+            "value": "[parameters('prefix')]"
+          },
+          "location": {
+            "value": "[parameters('locationA')]"
+          },
+          "workspaceId": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'log-analytics'), '2022-09-01').outputs.workspaceId.value]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.37.4.10188",
+              "templateHash": "17074201829773893470"
+            }
+          },
+          "parameters": {
+            "prefix": {
+              "type": "string",
+              "metadata": {
+                "description": "Resource name prefix"
+              }
+            },
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Location"
+              }
+            },
+            "workspaceId": {
+              "type": "string",
+              "metadata": {
+                "description": "Log Analytics workspace resource ID"
+              }
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {},
+              "metadata": {
+                "description": "Tags"
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Insights/workbooks",
+              "apiVersion": "2023-06-01",
+              "name": "[guid(resourceGroup().id, format('{0}-afd-traffic-workbook', parameters('prefix')))]",
+              "location": "[parameters('location')]",
+              "tags": "[union(parameters('tags'), createObject('hidden-title', format('{0} Front Door Traffic Analytics', parameters('prefix'))))]",
+              "kind": "shared",
+              "properties": {
+                "displayName": "[format('{0} Front Door Traffic Analytics', parameters('prefix'))]",
+                "category": "workbook",
+                "sourceId": "[parameters('workspaceId')]",
+                "serializedData": "[string(createObject('version', 'Notebook/1.0', 'items', createArray(createObject('type', 1, 'content', createObject('json', '# Front Door Traffic Analytics\\n---\\nThis workbook provides traffic, latency, and cache analytics for the Azure Front Door Premium profile.'), 'name', 'header'), createObject('type', 3, 'content', createObject('version', 'KqlItem/1.0', 'query', 'AzureDiagnostics\\n| where ResourceProvider == \"MICROSOFT.CDN\" and Category == \"FrontDoorAccessLog\"\\n| summarize Requests = count() by bin(TimeGenerated, 5m)\\n| render timechart', 'size', 0, 'title', 'Request Volume (5-min bins)', 'timeContext', createObject('durationMs', 86400000), 'queryType', 0, 'resourceType', 'microsoft.operationalinsights/workspaces', 'crossComponentResources', createArray(parameters('workspaceId'))), 'name', 'requestVolume'), createObject('type', 3, 'content', createObject('version', 'KqlItem/1.0', 'query', 'AzureDiagnostics\\n| where ResourceProvider == \"MICROSOFT.CDN\" and Category == \"FrontDoorAccessLog\"\\n| summarize P50=percentile(todouble(timeTaken_s), 50), P95=percentile(todouble(timeTaken_s), 95), P99=percentile(todouble(timeTaken_s), 99) by bin(TimeGenerated, 5m)\\n| render timechart', 'size', 0, 'title', 'Latency Percentiles (P50, P95, P99)', 'timeContext', createObject('durationMs', 86400000), 'queryType', 0, 'resourceType', 'microsoft.operationalinsights/workspaces', 'crossComponentResources', createArray(parameters('workspaceId'))), 'name', 'latencyPercentiles'), createObject('type', 3, 'content', createObject('version', 'KqlItem/1.0', 'query', 'AzureDiagnostics\\n| where ResourceProvider == \"MICROSOFT.CDN\" and Category == \"FrontDoorAccessLog\"\\n| extend IsHit = cacheStatus_s has \"HIT\"\\n| summarize Total = count(), Hits = countif(IsHit) by bin(TimeGenerated, 5m)\\n| extend HitRatio = round(100.0 * Hits / Total, 1)\\n| project TimeGenerated, HitRatio\\n| render timechart', 'size', 0, 'title', 'Cache Hit Ratio (%)', 'timeContext', createObject('durationMs', 86400000), 'queryType', 0, 'resourceType', 'microsoft.operationalinsights/workspaces', 'crossComponentResources', createArray(parameters('workspaceId'))), 'name', 'cacheHitRatio'), createObject('type', 3, 'content', createObject('version', 'KqlItem/1.0', 'query', 'AzureDiagnostics\\n| where ResourceProvider == \"MICROSOFT.CDN\" and Category == \"FrontDoorAccessLog\"\\n| summarize Count = count() by httpStatusCode_d\\n| order by Count desc\\n| render piechart', 'size', 0, 'title', 'HTTP Status Code Distribution', 'timeContext', createObject('durationMs', 86400000), 'queryType', 0, 'resourceType', 'microsoft.operationalinsights/workspaces', 'crossComponentResources', createArray(parameters('workspaceId'))), 'name', 'statusCodes'), createObject('type', 3, 'content', createObject('version', 'KqlItem/1.0', 'query', 'AzureDiagnostics\\n| where ResourceProvider == \"MICROSOFT.CDN\" and Category == \"FrontDoorAccessLog\"\\n| summarize Requests = count() by clientCountry_s\\n| top 20 by Requests\\n| render barchart', 'size', 0, 'title', 'Top 20 Countries by Request Volume', 'timeContext', createObject('durationMs', 86400000), 'queryType', 0, 'resourceType', 'microsoft.operationalinsights/workspaces', 'crossComponentResources', createArray(parameters('workspaceId'))), 'name', 'geoDistribution'), createObject('type', 3, 'content', createObject('version', 'KqlItem/1.0', 'query', 'AzureDiagnostics\\n| where ResourceProvider == \"MICROSOFT.CDN\" and Category == \"FrontDoorHealthProbeLog\"\\n| summarize HealthyCount = countif(httpStatusCode_d >= 200 and httpStatusCode_d < 400), UnhealthyCount = countif(httpStatusCode_d >= 400 or httpStatusCode_d == 0) by origin_s, bin(TimeGenerated, 5m)\\n| render timechart', 'size', 0, 'title', 'Origin Health Probe Results', 'timeContext', createObject('durationMs', 86400000), 'queryType', 0, 'resourceType', 'microsoft.operationalinsights/workspaces', 'crossComponentResources', createArray(parameters('workspaceId'))), 'name', 'originHealth')), 'isLocked', false()))]"
+              }
+            },
+            {
+              "type": "Microsoft.Insights/workbooks",
+              "apiVersion": "2023-06-01",
+              "name": "[guid(resourceGroup().id, format('{0}-waf-security-workbook', parameters('prefix')))]",
+              "location": "[parameters('location')]",
+              "tags": "[union(parameters('tags'), createObject('hidden-title', format('{0} WAF Security Analytics', parameters('prefix'))))]",
+              "kind": "shared",
+              "properties": {
+                "displayName": "[format('{0} WAF Security Analytics', parameters('prefix'))]",
+                "category": "workbook",
+                "sourceId": "[parameters('workspaceId')]",
+                "serializedData": "[string(createObject('version', 'Notebook/1.0', 'items', createArray(createObject('type', 1, 'content', createObject('json', '# WAF Security Analytics\\n---\\nThis workbook provides Web Application Firewall analytics including blocked requests, rule triggers, and attack sources.'), 'name', 'header'), createObject('type', 3, 'content', createObject('version', 'KqlItem/1.0', 'query', 'AzureDiagnostics\\n| where ResourceProvider == \"MICROSOFT.CDN\" and Category == \"FrontDoorWebApplicationFirewallLog\"\\n| summarize Count = count() by action_s, bin(TimeGenerated, 5m)\\n| render timechart', 'size', 0, 'title', 'WAF Actions Over Time (Block / Allow / Log)', 'timeContext', createObject('durationMs', 86400000), 'queryType', 0, 'resourceType', 'microsoft.operationalinsights/workspaces', 'crossComponentResources', createArray(parameters('workspaceId'))), 'name', 'wafActions'), createObject('type', 3, 'content', createObject('version', 'KqlItem/1.0', 'query', 'AzureDiagnostics\\n| where ResourceProvider == \"MICROSOFT.CDN\" and Category == \"FrontDoorWebApplicationFirewallLog\"\\n| where action_s == \"Block\"\\n| summarize BlockedRequests = count() by bin(TimeGenerated, 5m)\\n| render timechart', 'size', 0, 'title', 'Blocked Requests Over Time', 'timeContext', createObject('durationMs', 86400000), 'queryType', 0, 'resourceType', 'microsoft.operationalinsights/workspaces', 'crossComponentResources', createArray(parameters('workspaceId'))), 'name', 'blockedRequests'), createObject('type', 3, 'content', createObject('version', 'KqlItem/1.0', 'query', 'AzureDiagnostics\\n| where ResourceProvider == \"MICROSOFT.CDN\" and Category == \"FrontDoorWebApplicationFirewallLog\"\\n| where action_s == \"Block\"\\n| summarize Count = count() by ruleName_s\\n| top 10 by Count\\n| render barchart', 'size', 0, 'title', 'Top 10 WAF Rules Triggered (Blocked)', 'timeContext', createObject('durationMs', 86400000), 'queryType', 0, 'resourceType', 'microsoft.operationalinsights/workspaces', 'crossComponentResources', createArray(parameters('workspaceId'))), 'name', 'topRules'), createObject('type', 3, 'content', createObject('version', 'KqlItem/1.0', 'query', 'AzureDiagnostics\\n| where ResourceProvider == \"MICROSOFT.CDN\" and Category == \"FrontDoorWebApplicationFirewallLog\"\\n| where action_s == \"Block\"\\n| summarize Count = count() by clientIP_s\\n| top 20 by Count\\n| render barchart', 'size', 0, 'title', 'Top 20 Blocked Source IPs', 'timeContext', createObject('durationMs', 86400000), 'queryType', 0, 'resourceType', 'microsoft.operationalinsights/workspaces', 'crossComponentResources', createArray(parameters('workspaceId'))), 'name', 'topBlockedIPs'), createObject('type', 3, 'content', createObject('version', 'KqlItem/1.0', 'query', 'AzureDiagnostics\\n| where ResourceProvider == \"MICROSOFT.CDN\" and Category == \"FrontDoorWebApplicationFirewallLog\"\\n| summarize Count = count() by policyName_s, action_s\\n| render barchart', 'size', 0, 'title', 'WAF Policy Actions Summary', 'timeContext', createObject('durationMs', 86400000), 'queryType', 0, 'resourceType', 'microsoft.operationalinsights/workspaces', 'crossComponentResources', createArray(parameters('workspaceId'))), 'name', 'policyActions'), createObject('type', 3, 'content', createObject('version', 'KqlItem/1.0', 'query', 'AzureDiagnostics\\n| where ResourceProvider == \"MICROSOFT.CDN\" and Category == \"FrontDoorWebApplicationFirewallLog\"\\n| where action_s == \"Block\"\\n| summarize Count = count() by clientCountry_s\\n| top 10 by Count\\n| render piechart', 'size', 0, 'title', 'Blocked Requests by Country', 'timeContext', createObject('durationMs', 86400000), 'queryType', 0, 'resourceType', 'microsoft.operationalinsights/workspaces', 'crossComponentResources', createArray(parameters('workspaceId'))), 'name', 'blockedByCountry')), 'isLocked', false()))]"
+              }
+            }
+          ],
+          "outputs": {
+            "trafficWorkbookId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Insights/workbooks', guid(resourceGroup().id, format('{0}-afd-traffic-workbook', parameters('prefix'))))]"
+            },
+            "wafWorkbookId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Insights/workbooks', guid(resourceGroup().id, format('{0}-waf-security-workbook', parameters('prefix'))))]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', 'log-analytics')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "dashboard",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "prefix": {
+            "value": "[parameters('prefix')]"
+          },
+          "location": {
+            "value": "[parameters('locationA')]"
+          },
+          "workspaceId": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'log-analytics'), '2022-09-01').outputs.workspaceId.value]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.37.4.10188",
+              "templateHash": "10224175599715993236"
+            }
+          },
+          "parameters": {
+            "prefix": {
+              "type": "string",
+              "metadata": {
+                "description": "Resource name prefix"
+              }
+            },
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Location"
+              }
+            },
+            "workspaceId": {
+              "type": "string",
+              "metadata": {
+                "description": "Log Analytics workspace resource ID"
+              }
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {},
+              "metadata": {
+                "description": "Tags"
+              }
+            }
+          },
+          "variables": {
+            "$fxv#0": "{\r\n  \"version\": \"Notebook/1.0\",\r\n  \"items\": [\r\n    {\r\n      \"type\": 1,\r\n      \"content\": {\r\n        \"json\": \"# Azure Front Door — CDN + WAF Dashboard\\n\\nOperational visibility for the Azure Front Door sandbox.\"\r\n      },\r\n      \"name\": \"header\"\r\n    },\r\n    {\r\n      \"type\": 9,\r\n      \"content\": {\r\n        \"version\": \"KqlParameterItem/1.0\",\r\n        \"parameters\": [\r\n          {\r\n            \"name\": \"TimeRange\",\r\n            \"type\": 4,\r\n            \"isRequired\": true,\r\n            \"value\": {\r\n              \"durationMs\": 3600000\r\n            },\r\n            \"typeSettings\": {\r\n              \"selectableValues\": [\r\n                { \"durationMs\": 300000 },\r\n                { \"durationMs\": 900000 },\r\n                { \"durationMs\": 1800000 },\r\n                { \"durationMs\": 3600000 },\r\n                { \"durationMs\": 14400000 },\r\n                { \"durationMs\": 43200000 },\r\n                { \"durationMs\": 86400000 }\r\n              ]\r\n            }\r\n          }\r\n        ]\r\n      },\r\n      \"name\": \"parameters\"\r\n    },\r\n    {\r\n      \"type\": 1,\r\n      \"content\": {\r\n        \"json\": \"## Traffic Overview\"\r\n      },\r\n      \"name\": \"section-traffic\"\r\n    },\r\n    {\r\n      \"type\": 3,\r\n      \"content\": {\r\n        \"version\": \"KqlItem/1.0\",\r\n        \"query\": \"AzureDiagnostics\\n| where Category == \\\"FrontDoorAccessLog\\\"\\n| where TimeGenerated {TimeRange}\\n| summarize RequestCount = count() by bin(TimeGenerated, 5m)\\n| render timechart\",\r\n        \"size\": 0,\r\n        \"title\": \"Requests Over Time\",\r\n        \"queryType\": 0,\r\n        \"visualization\": \"timechart\"\r\n      },\r\n      \"name\": \"requests-over-time\"\r\n    },\r\n    {\r\n      \"type\": 3,\r\n      \"content\": {\r\n        \"version\": \"KqlItem/1.0\",\r\n        \"query\": \"AzureDiagnostics\\n| where Category == \\\"FrontDoorAccessLog\\\"\\n| where TimeGenerated {TimeRange}\\n| summarize Count = count() by httpStatusCode_s\\n| render piechart\",\r\n        \"size\": 1,\r\n        \"title\": \"Response Status Codes\",\r\n        \"queryType\": 0,\r\n        \"visualization\": \"piechart\"\r\n      },\r\n      \"name\": \"status-codes\"\r\n    },\r\n    {\r\n      \"type\": 1,\r\n      \"content\": {\r\n        \"json\": \"## Cache Performance\"\r\n      },\r\n      \"name\": \"section-cache\"\r\n    },\r\n    {\r\n      \"type\": 3,\r\n      \"content\": {\r\n        \"version\": \"KqlItem/1.0\",\r\n        \"query\": \"AzureDiagnostics\\n| where Category == \\\"FrontDoorAccessLog\\\"\\n| where TimeGenerated {TimeRange}\\n| summarize Count = count() by cacheStatus_s\\n| render piechart\",\r\n        \"size\": 1,\r\n        \"title\": \"Cache Hit/Miss Ratio\",\r\n        \"queryType\": 0,\r\n        \"visualization\": \"piechart\"\r\n      },\r\n      \"name\": \"cache-hitrate\"\r\n    },\r\n    {\r\n      \"type\": 3,\r\n      \"content\": {\r\n        \"version\": \"KqlItem/1.0\",\r\n        \"query\": \"AzureDiagnostics\\n| where Category == \\\"FrontDoorAccessLog\\\"\\n| where TimeGenerated {TimeRange}\\n| summarize AvgLatency = avg(timeTaken_d), P95 = percentile(timeTaken_d, 95) by bin(TimeGenerated, 5m)\\n| render timechart\",\r\n        \"size\": 0,\r\n        \"title\": \"Latency (Avg & P95)\",\r\n        \"queryType\": 0,\r\n        \"visualization\": \"timechart\"\r\n      },\r\n      \"name\": \"latency\"\r\n    },\r\n    {\r\n      \"type\": 1,\r\n      \"content\": {\r\n        \"json\": \"## WAF / Security\"\r\n      },\r\n      \"name\": \"section-waf\"\r\n    },\r\n    {\r\n      \"type\": 3,\r\n      \"content\": {\r\n        \"version\": \"KqlItem/1.0\",\r\n        \"query\": \"AzureDiagnostics\\n| where Category == \\\"FrontDoorWebApplicationFirewallLog\\\"\\n| where TimeGenerated {TimeRange}\\n| summarize Count = count() by action_s, ruleName_s\\n| sort by Count desc\",\r\n        \"size\": 0,\r\n        \"title\": \"WAF Actions by Rule\",\r\n        \"queryType\": 0,\r\n        \"visualization\": \"table\"\r\n      },\r\n      \"name\": \"waf-actions\"\r\n    },\r\n    {\r\n      \"type\": 3,\r\n      \"content\": {\r\n        \"version\": \"KqlItem/1.0\",\r\n        \"query\": \"AzureDiagnostics\\n| where Category == \\\"FrontDoorWebApplicationFirewallLog\\\"\\n| where action_s == \\\"Block\\\"\\n| where TimeGenerated {TimeRange}\\n| summarize Blocks = count() by bin(TimeGenerated, 5m)\\n| render timechart\",\r\n        \"size\": 0,\r\n        \"title\": \"WAF Blocks Over Time\",\r\n        \"queryType\": 0,\r\n        \"visualization\": \"timechart\"\r\n      },\r\n      \"name\": \"waf-blocks-time\"\r\n    },\r\n    {\r\n      \"type\": 1,\r\n      \"content\": {\r\n        \"json\": \"## Origin Health\"\r\n      },\r\n      \"name\": \"section-health\"\r\n    },\r\n    {\r\n      \"type\": 3,\r\n      \"content\": {\r\n        \"version\": \"KqlItem/1.0\",\r\n        \"query\": \"AzureDiagnostics\\n| where Category == \\\"FrontDoorHealthProbeLog\\\"\\n| where TimeGenerated {TimeRange}\\n| summarize Count = count() by healthProbeStatus_s, originName_s\\n| render barchart\",\r\n        \"size\": 0,\r\n        \"title\": \"Health Probe Results by Origin\",\r\n        \"queryType\": 0,\r\n        \"visualization\": \"barchart\"\r\n      },\r\n      \"name\": \"health-probes\"\r\n    }\r\n  ],\r\n  \"$schema\": \"https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json\"\r\n}\r\n"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Insights/workbooks",
+              "apiVersion": "2023-06-01",
+              "name": "[guid(resourceGroup().id, format('{0}-afd-workbook', parameters('prefix')))]",
+              "location": "[parameters('location')]",
+              "tags": "[union(parameters('tags'), createObject('hidden-title', format('{0} Front Door CDN WAF Dashboard', parameters('prefix'))))]",
+              "kind": "shared",
+              "properties": {
+                "displayName": "[format('{0} Front Door CDN WAF Dashboard', parameters('prefix'))]",
+                "category": "workbook",
+                "sourceId": "[parameters('workspaceId')]",
+                "serializedData": "[variables('$fxv#0')]"
+              }
+            }
+          ],
+          "outputs": {
+            "workbookId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Insights/workbooks', guid(resourceGroup().id, format('{0}-afd-workbook', parameters('prefix'))))]"
+            },
+            "workbookName": {
+              "type": "string",
+              "value": "[guid(resourceGroup().id, format('{0}-afd-workbook', parameters('prefix')))]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', 'log-analytics')]"
+      ]
+    }
+  ],
+  "outputs": {
+    "frontDoorEndpoint": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'frontdoor'), '2022-09-01').outputs.endpointHostName.value]"
+    },
+    "frontDoorProfileName": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'frontdoor'), '2022-09-01').outputs.profileName.value]"
+    },
+    "originAHostname": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'origin-a'), '2022-09-01').outputs.hostname.value]"
+    },
+    "originBHostname": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'origin-b'), '2022-09-01').outputs.hostname.value]"
+    },
+    "originAAppName": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'origin-a'), '2022-09-01').outputs.appName.value]"
+    },
+    "originBAppName": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'origin-b'), '2022-09-01').outputs.appName.value]"
+    },
+    "originAEnvName": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'origin-a'), '2022-09-01').outputs.environmentName.value]"
+    },
+    "originBEnvName": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'origin-b'), '2022-09-01').outputs.environmentName.value]"
+    },
+    "logAnalyticsWorkspace": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'log-analytics'), '2022-09-01').outputs.workspaceName.value]"
+    },
+    "wafPolicyName": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'waf-policy'), '2022-09-01').outputs.wafPolicyName.value]"
+    },
+    "customDomainConfig": {
+      "type": "array",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'frontdoor'), '2022-09-01').outputs.customDomainConfig.value]"
+    },
+    "AZURE_CONTAINER_REGISTRY_ENDPOINT": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'container-registry'), '2022-09-01').outputs.acrLoginServer.value]"
+    },
+    "AZURE_CONTAINER_REGISTRY_NAME": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'container-registry'), '2022-09-01').outputs.acrName.value]"
+    }
+  }
+}

@@ -1,0 +1,33 @@
+name: Destroy Demo Environment
+on:
+  workflow_dispatch:
+    inputs:
+      resource_group:
+        description: 'Resource group to delete'
+        default: 'rg-afd-demo'
+        required: true
+      confirm:
+        description: 'Type "destroy" to confirm'
+        required: true
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  destroy:
+    runs-on: ubuntu-latest
+    if: inputs.confirm == 'destroy'
+    environment: demo
+    steps:
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Delete Resource Group
+        run: |
+          az group delete --name "${{ inputs.resource_group }}" --yes --no-wait
+          echo "Resource group deletion initiated."

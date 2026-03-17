@@ -1,0 +1,56 @@
+name: Deploy Demo Environment
+on:
+  workflow_dispatch:
+    inputs:
+      prefix:
+        description: 'Resource naming prefix'
+        default: 'afdemo'
+        required: true
+      location_a:
+        description: 'Primary region'
+        default: 'eastus2'
+        required: true
+      location_b:
+        description: 'Secondary region'
+        default: 'westus2'
+        required: true
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  RG: rg-afd-demo
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Bicep Lint
+        run: az bicep build --file infra/bicep/main.bicep --stdout > /dev/null
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: lint
+    environment: demo
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Install azd
+        uses: Azure/setup-azd@v2
+
+      - name: Deploy
+        env:
+          DEMO_PREFIX: ${{ inputs.prefix }}
+          DEMO_LOCATION_A: ${{ inputs.location_a }}
+          DEMO_LOCATION_B: ${{ inputs.location_b }}
+          DEMO_RG: ${{ env.RG }}
+        run: azd up --no-prompt

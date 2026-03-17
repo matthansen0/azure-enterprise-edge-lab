@@ -1,0 +1,39 @@
+# ---------------------------------------------------------------------------
+# azure.yaml — Azure Developer CLI (azd) configuration
+# ---------------------------------------------------------------------------
+name: azure-enterprise-edge-lab
+
+metadata:
+  template: azd-init
+
+infra:
+  provider: bicep
+  path: infra/bicep
+
+# hooks:
+#   preprovision:
+#     shell: sh
+#     run: bash infra/hooks/preprovision.sh
+
+hooks:
+  postdeploy:
+    windows:
+      shell: pwsh
+      run: pwsh -File infra/hooks/postdeploy.ps1
+    posix:
+      shell: sh
+      run: bash infra/hooks/postdeploy.sh
+
+services:
+  origin-a:
+    project: ./apps
+    language: js
+    host: containerapp
+    docker:
+      path: ./Dockerfile
+  origin-b:
+    project: ./apps
+    language: js
+    host: containerapp
+    docker:
+      path: ./Dockerfile

@@ -1,0 +1,37 @@
+# Dependency directories
+node_modules/
+
+# Build output
+dist/
+.build/
+
+# Environment files
+.env
+.env.local
+*.env
+
+# Azure
+.azure/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Logs
+*.log
+npm-debug.log*
+
+# Terraform state (if ever used)
+*.tfstate
+*.tfstate.backup
+.terraform/
+
+# SSH keys generated during demo
+id_demo*

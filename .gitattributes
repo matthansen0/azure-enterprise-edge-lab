@@ -1,0 +1,2 @@
+# Enforce LF line endings everywhere so dev containers (Linux) see clean checkouts
+* text=auto eol=lf
