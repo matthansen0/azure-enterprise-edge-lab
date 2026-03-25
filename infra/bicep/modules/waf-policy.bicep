@@ -49,7 +49,7 @@ resource wafPolicy 'Microsoft.Network/FrontDoorWebApplicationFirewallPolicies@20
     // --- Custom Rules ---
     customRules: {
       rules: [
-        // Rule 1: Block requests with X-Demo-Block header (curl demo)
+        // Rule 1: Block requests with X-Demo-Block header (curl exercise)
         {
           name: 'BlockDemoHeader'
           priority: 100
@@ -69,7 +69,7 @@ resource wafPolicy 'Microsoft.Network/FrontDoorWebApplicationFirewallPolicies@20
             }
           ]
         }
-        // Rule 2: Block requests with ?waf-test=block query param (browser demo)
+        // Rule 2: Block requests with ?waf-test=block query param (browser exercise)
         {
           name: 'BlockDemoQueryParam'
           priority: 150
@@ -106,7 +106,7 @@ resource wafPolicy 'Microsoft.Network/FrontDoorWebApplicationFirewallPolicies@20
             }
           ]
         }
-        // Rule 4: Block suspicious bot-like User-Agent (curl demo)
+        // Rule 4: Block suspicious bot-like User-Agent (curl exercise)
         {
           name: 'BlockDemoBotUA'
           priority: 300

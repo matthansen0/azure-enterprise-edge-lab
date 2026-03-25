@@ -33,5 +33,5 @@ npm-debug.log*
 *.tfstate.backup
 .terraform/
 
-# SSH keys generated during demo
+# SSH keys generated during lab sessions
 id_demo*

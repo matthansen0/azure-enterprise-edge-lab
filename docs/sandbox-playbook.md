@@ -1,11 +1,11 @@
-# Demo Runbook
+# Sandbox Playbook
 
 > Step-by-step walkthrough of the CDN + WAF sandbox.
 > Each section references exact commands and expected output.
 
 ---
 
-## Pre-Demo Checklist
+## Pre-Activity Checklist
 
 - [ ] Dev Container running with all tools installed
 - [ ] Logged in: `azd auth login --use-device-code` and `az login --use-device-code`
@@ -30,7 +30,7 @@ Walk through the architecture diagram, global anycast network, and multi-region 
 
 ---
 
-### A2. Live CDN Delivery Demo
+### A2. Live CDN Delivery
 
 **Steps**:
 ```bash
@@ -79,7 +79,7 @@ curl -sI "https://$AFD_ENDPOINT/api/cache-control?policy=no-store" | grep -i cac
 
 ---
 
-### A4. Instant Purge Demo
+### A4. Cache Purge Exercise
 
 **Steps**:
 ```bash
@@ -101,7 +101,7 @@ az afd endpoint purge --resource-group rg-afd-demo \
 
 ### A5. Content Deployment Workflow
 
-Demonstrates how a code change reaches the edge.
+Shows how a code change reaches the edge.
 
 **Steps**:
 1. Make a change to the app (e.g., update `version.json`)
@@ -131,7 +131,7 @@ Demonstrates how a code change reaches the edge.
 2. In Portal → Resource Group → Access Control (IAM) → show how roles would be assigned
 3. Reference [docs/operating-model.md](operating-model.md) RACI section
 
-**Expected Output**: Configuration shows www/api/cdn/portal subdomains. IAM blade open for role assignment demo.
+**Expected Output**: Configuration shows www/api/cdn/portal subdomains. IAM blade open for role assignment walkthrough.
 
 ---
 
@@ -175,7 +175,7 @@ curl -s -o /dev/null -w "HTTP %{http_code}\n" \
 
 ---
 
-### B4. Rate Limiting Demo
+### B4. Rate Limiting Exercise
 
 **Steps**:
 ```bash
@@ -186,7 +186,7 @@ bash scripts/generate-traffic.sh 150 10
 
 ---
 
-### B5. Origin Failover Demo
+### B5. Origin Failover Exercise
 
 **Steps**:
 ```bash
@@ -262,7 +262,7 @@ az monitor log-analytics query \
    Copilot generates and runs KQL against the Sentinel workspace. Compare its output with the manual query in [docs/analytics-kql.md](analytics-kql.md).
 
 3. **Incident Summarization**
-   - If a Sentinel incident exists from the WAF block demo (Section B2/B3), ask:
+   - If a Sentinel incident exists from the WAF block exercise (Section B2/B3), ask:
    > *"Summarize the latest Sentinel incident related to WAF blocks"*
    - Copilot returns a plain-language summary with affected IPs, triggered rules, timeline, and severity assessment.
 

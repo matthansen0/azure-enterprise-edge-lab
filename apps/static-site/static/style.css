@@ -97,7 +97,7 @@ footer {
   font-size: 0.85rem;
 }
 
-/* Interactive Demo Buttons */
+/* Interactive Test Buttons */
 .demo-items {
   display: flex;
   flex-direction: column;
@@ -159,7 +159,7 @@ footer {
 .demo-result.cache-hit { background: #dff6dd; color: #107c10; }
 .demo-result.cache-miss { background: #fff4ce; color: #797673; }
 
-/* Collapsible curl demos */
+/* Collapsible curl exercises */
 .curl-demos {
   margin-top: 1rem;
   border: 1px solid var(--border);

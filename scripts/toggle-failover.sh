@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ---------------------------------------------------------------------------
-# toggle-failover.sh — Enable/disable an origin to demo failover
+# toggle-failover.sh — Enable/disable an origin to exercise failover
 # Usage: bash scripts/toggle-failover.sh disable origin-b
 #        bash scripts/toggle-failover.sh enable  origin-b
 #
@@ -26,7 +26,7 @@ else
 fi
 
 echo "============================================"
-echo "  Origin Failover Demo"
+echo "  Origin Failover Exercise"
 echo "============================================"
 echo "  Action: $ACTION → $ORIGIN ($STATE)"
 echo ""

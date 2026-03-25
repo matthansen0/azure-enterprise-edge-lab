@@ -1,4 +1,4 @@
-name: Destroy Demo Environment
+name: Destroy Sandbox Environment
 on:
   workflow_dispatch:
     inputs:
@@ -18,7 +18,7 @@ jobs:
   destroy:
     runs-on: ubuntu-latest
     if: inputs.confirm == 'destroy'
-    environment: demo
+    environment: sandbox
     steps:
       - name: Azure Login
         uses: azure/login@v2

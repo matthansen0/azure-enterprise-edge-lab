@@ -2,5 +2,5 @@
   "version": "1.0.0",
   "buildId": "initial",
   "timestamp": "2026-03-17T00:00:00Z",
-  "note": "This file is used to demonstrate cache purge. Update version and purge to see changes at edge."
+  "note": "This file is used to exercise cache purge. Update version and purge to see changes at edge."
 }

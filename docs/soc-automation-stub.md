@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes the Sentinel automation workflow that would be deployed for production SOC integration. In this demo environment, the automation is represented as a skeleton — the Logic App and notification connectors are described but not fully deployed to avoid requiring external service credentials.
+This document describes the Sentinel automation workflow that would be deployed for production SOC integration. In this sandbox environment, the automation is represented as a skeleton — the Logic App and notification connectors are described but not fully deployed to avoid requiring external service credentials.
 
 ---
 
@@ -74,7 +74,7 @@ The following Logic App would be created for production:
 ### Bicep Skeleton (Not Deployed)
 
 ```bicep
-// This would deploy the Logic App — not included in demo to avoid external dependencies
+// This would deploy the Logic App — not included in the sandbox to avoid external dependencies
 resource logicApp 'Microsoft.Logic/workflows@2019-05-01' = {
   name: '${prefix}-waf-alert-playbook'
   location: location
@@ -105,7 +105,7 @@ resource logicApp 'Microsoft.Logic/workflows@2019-05-01' = {
 
 ### Overview
 
-Microsoft Security Copilot is provisioned in this demo environment using the **pay-as-you-go** model (Security Compute Units). This removes the need for per-user licenses and bills only for consumed capacity (~$4/hour per SCU while provisioned).
+Microsoft Security Copilot is provisioned in this sandbox environment using the **pay-as-you-go** model (Security Compute Units). This removes the need for per-user licenses and bills only for consumed capacity (~$4/hour per SCU while provisioned).
 
 The Bicep module at `infra/bicep/modules/security-copilot.bicep` deploys a minimum 1-SCU capacity that is automatically torn down with `azd down`.
 
@@ -122,7 +122,7 @@ WAF Block Events → Sentinel Incident → Security Copilot (AI triage)
                             response actions        correlation
 ```
 
-### Capabilities Available in This Demo
+### Capabilities Available in This Sandbox
 
 1. **Natural Language KQL** — Ask questions in plain English and Security Copilot generates and runs KQL against the Sentinel workspace:
    - *"Show me all WAF blocks from the last hour grouped by source IP"*
@@ -146,10 +146,10 @@ WAF Block Events → Sentinel Incident → Security Copilot (AI triage)
 
 | Model | How It Works | Cost |
 |-------|-------------|------|
-| **Pay-as-you-go (this demo)** | 1 SCU provisioned via Bicep; billed hourly while capacity exists | ~$4/hr per SCU |
+| **Pay-as-you-go (this sandbox)** | 1 SCU provisioned via Bicep; billed hourly while capacity exists | ~$4/hr per SCU |
 | **Consumption (alternative)** | No capacity resource; billed per prompt/session | Usage-based |
 
-> **Tip**: Run `azd down` after the demo to stop billing immediately. The 1-SCU capacity costs ~$96/day if left running.
+> **Tip**: Run `azd down` after the lab session to stop billing immediately. The 1-SCU capacity costs ~$96/day if left running.
 
 ## Integration Points
 

@@ -27,7 +27,7 @@ param deploySecurityCopilot bool = false
 
 @description('Tags applied to all resources')
 param tags object = {
-  environment: 'demo'
+  environment: 'sandbox'
   project: 'afd-sandbox'
   purpose: 'cdn-waf-sandbox'
 }

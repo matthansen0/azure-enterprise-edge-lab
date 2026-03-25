@@ -68,7 +68,7 @@
       </div>
     </section>
     <section class="card">
-      <h2>WAF Demo Triggers (Safe)</h2>
+      <h2>WAF Test Triggers (Safe)</h2>
       <p>Click a button to fire a live request. The WAF evaluates every request at the edge before it reaches the origin.</p>
       <div class="demo-items">
         <div class="demo-item">
@@ -83,7 +83,7 @@
         </div>
       </div>
       <details class="curl-demos">
-        <summary>Additional WAF demos (curl / terminal only)</summary>
+        <summary>Additional WAF exercises (curl / terminal only)</summary>
         <p>These rules rely on HTTP headers that browsers cannot override in <code>fetch()</code>. Run them from a terminal.</p>
         <pre><code># Header-based block (custom rule: BlockDemoHeader)
 curl -s -o /dev/null -w "HTTP %{http_code}" -H "X-Demo-Block: true" \
@@ -166,7 +166,7 @@ curl -s -o /dev/null -w "HTTP %{http_code}" -A "DemoMaliciousBot/1.0" \
     </section>
   </main>
   <footer>
-    <p>Demo Environment — Not for production use</p>
+    <p>Sandbox Environment — Not for production use</p>
   </footer>
 </body>
 </html>

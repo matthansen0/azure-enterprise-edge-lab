@@ -58,7 +58,7 @@
     "tags": {
       "type": "object",
       "defaultValue": {
-        "environment": "demo",
+        "environment": "sandbox",
         "project": "afd-sandbox",
         "purpose": "cdn-waf-sandbox"
       },
@@ -907,7 +907,7 @@
                 "portal"
               ],
               "metadata": {
-                "description": "Placeholder custom domains (for multi-subdomain demo config)"
+                "description": "Placeholder custom domains (for multi-subdomain sandbox config)"
               }
             },
             "baseDomain": {

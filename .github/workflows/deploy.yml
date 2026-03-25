@@ -1,4 +1,4 @@
-name: Deploy Demo Environment
+name: Deploy Sandbox Environment
 on:
   workflow_dispatch:
     inputs:
@@ -33,7 +33,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: lint
-    environment: demo
+    environment: sandbox
     steps:
       - uses: actions/checkout@v4
 

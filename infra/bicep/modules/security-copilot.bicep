@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------
 // Module: Microsoft Security Copilot — Pay-as-you-go (SCU Capacity)
-// Provisions a minimum Security Compute Unit capacity for the demo.
+// Provisions a minimum Security Compute Unit capacity for the sandbox.
 // Billing: ~$4/hour per SCU while provisioned. Destroy with `azd down`.
 // ---------------------------------------------------------------------------
 @description('Resource name prefix')

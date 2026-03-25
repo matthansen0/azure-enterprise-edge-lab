@@ -16,7 +16,7 @@ param wafPolicyId string
 @description('Tags')
 param tags object = {}
 
-@description('Placeholder custom domains (for multi-subdomain demo config)')
+@description('Placeholder custom domains (for multi-subdomain sandbox config)')
 param customDomainPrefixes array = ['www', 'api', 'cdn', 'portal']
 
 @description('Base domain for placeholder custom domains')

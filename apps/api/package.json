@@ -1,7 +1,7 @@
 {
   "name": "afd-demo-api",
   "version": "1.0.0",
-  "description": "Demo API for Azure Front Door CDN/WAF sandbox",
+  "description": "API for Azure Front Door CDN/WAF sandbox",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

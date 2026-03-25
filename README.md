@@ -87,15 +87,15 @@ azd init              # First time: select environment name, subscription, locat
 azd up                # Provisions Bicep infra + builds/deploys app to both origins
 ```
 
-![Demo web page served through Azure Front Door](docs/media/demo-web-page.png)
+![Sandbox web page served through Azure Front Door](docs/media/demo-web-page.png)
 
-### 4. Run Demo Scripts
+### 4. Run Sandbox Scripts
 
 ```bash
 # Purge a path and verify cache refresh
 bash scripts/purge.sh /static/version.json
 
-# Generate traffic (benign load for rate-limit demo)
+# Generate traffic (benign load for rate-limit exercise)
 bash scripts/generate-traffic.sh
 
 # Toggle origin failover (disable/enable origin)
@@ -109,16 +109,16 @@ bash scripts/toggle-failover.sh enable origin-b
 azd down              # Deletes all provisioned resources
 ```
 
-## Demo Runbook
+## Sandbox Playbook
 
-See [docs/demo-runbook.md](docs/demo-runbook.md) for a walkthrough with exact commands and expected output.
+See [docs/sandbox-playbook.md](docs/sandbox-playbook.md) for a walkthrough with exact commands and expected output.
 
 ## Documentation Index
 
 | Document | Description |
 |----------|-------------|
 | [Architecture](docs/architecture.md) | System architecture and component map |
-| [Demo Runbook](docs/demo-runbook.md) | Walkthrough with commands and expected output |
+| [Sandbox Playbook](docs/sandbox-playbook.md) | Walkthrough with commands and expected output |
 | [Analytics KQL](docs/analytics-kql.md) | KQL queries for dashboards and ad-hoc analysis |
 | [Operating Model](docs/operating-model.md) | RACI, support tiers, SLA-backed incident flow |
 | [Migration & Onboarding](docs/migration-onboarding.md) | Phased migration, rollback, DNS cutover |
@@ -127,6 +127,6 @@ See [docs/demo-runbook.md](docs/demo-runbook.md) for a walkthrough with exact co
 
 ## Design Principles
 
-- **No real exploit payloads** — WAF blocking is demonstrated with safe custom headers and benign traffic.
+- **No real exploit payloads** — WAF blocking is shown with safe custom headers and benign traffic.
 - **Fully idempotent** — deploy and destroy cleanly.
 - **Self-contained** — everything needed to deploy is in this repo.

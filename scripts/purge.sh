@@ -15,7 +15,7 @@ PROFILE_NAME="${PREFIX}-afd"
 ENDPOINT_NAME="${PREFIX}-endpoint"
 
 echo "============================================"
-echo "  Cache Purge Demo"
+echo "  Cache Purge Exercise"
 echo "============================================"
 
 # Resolve Front Door FQDN — env var first, then az CLI

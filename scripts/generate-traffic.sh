@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ---------------------------------------------------------------------------
-# generate-traffic.sh — Generate benign traffic to demonstrate rate limiting
+# generate-traffic.sh — Generate benign traffic to exercise rate limiting
 # Uses 'hey' HTTP load generator or falls back to curl
 #
 # Usage:
@@ -68,7 +68,7 @@ fi
 BASE_URL="https://$AFD_ENDPOINT"
 
 echo "============================================"
-echo "  Traffic Generation — Rate Limit Demo"
+echo "  Traffic Generation — Rate Limit Exercise"
 echo "============================================"
 echo "  Target:      $BASE_URL/api/health"
 echo "  Requests:    $RATE_LIMIT"
