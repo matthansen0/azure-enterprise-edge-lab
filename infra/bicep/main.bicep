@@ -23,7 +23,7 @@ param rateLimitThreshold int = 100
 param logRetentionDays int = 90
 
 @description('Deploy Security Copilot pay-as-you-go capacity (~$4/hr per SCU)')
-param deploySecurityCopilot bool = true
+param deploySecurityCopilot bool = false
 
 @description('Tags applied to all resources')
 param tags object = {

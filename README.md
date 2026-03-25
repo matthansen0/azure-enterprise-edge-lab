@@ -75,6 +75,13 @@ export DEMO_RG="rg-afd-demo"         # Resource group name
 
 ### 3. Deploy
 
+> **Security Copilot** is **not** deployed by default (it bills at ~\$4/hr per SCU).
+> To opt in, set the parameter before deploying:
+>
+> ```bash
+> azd env set DEPLOY_SECURITY_COPILOT true
+> ```
+
 ```bash
 azd init              # First time: select environment name, subscription, location
 azd up                # Provisions Bicep infra + builds/deploys app to both origins

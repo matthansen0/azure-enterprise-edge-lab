@@ -6,3 +6,4 @@ param locationB = 'westus2'
 param wafMode = 'Prevention'
 param rateLimitThreshold = 100
 param logRetentionDays = 90
+param deploySecurityCopilot = readEnvironmentVariable('DEPLOY_SECURITY_COPILOT', 'false') == 'true'
