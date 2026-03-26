@@ -6,46 +6,7 @@
 
 ## Architecture Overview
 
-```mermaid
-flowchart LR
-    Client(["Client"])
-
-    subgraph AFD["Azure Front Door Premium"]
-        direction TB
-        Endpoint["Endpoint\nafdemo-endpoint-*.azurefd.net"]
-        WAF["WAF Policy\nDRS 2.1 · Bot Manager 1.1\nCustom Rules"]
-        Cache["Rules Engine\nCaching · HTTPS Redirect"]
-        Endpoint --- WAF --- Cache
-    end
-
-    subgraph Origins["Origin Group  (Active / Passive)"]
-        direction TB
-        subgraph RegionA["East US 2"]
-            AppA["Container App\nafdemo-origin-a\n🟢 Priority 1"]
-        end
-        subgraph RegionB["West US 2"]
-            AppB["Container App\nafdemo-origin-b\n🟡 Priority 2"]
-        end
-    end
-
-    subgraph Observability["Logging & Security"]
-        direction TB
-        LAW["Log Analytics\nWorkspace"]
-        Sentinel["Microsoft\nSentinel"]
-        Workbook["Azure\nWorkbook"]
-        LAW --> Sentinel
-        LAW --> Workbook
-    end
-
-    ACR[("Azure Container\nRegistry")]
-
-    Client -->|HTTPS| Endpoint
-    Cache -->|HTTPS :443| AppA
-    Cache -.->|failover| AppB
-    ACR -.->|image| AppA
-    ACR -.->|image| AppB
-    AFD -.->|diagnostics| LAW
-```
+![Enterprise Edge Architecture](docs/media/enterprise-edge-diagram1.png)
 
 See [docs/architecture.md](docs/architecture.md) for component details, caching strategy, WAF rules, and more.
 
