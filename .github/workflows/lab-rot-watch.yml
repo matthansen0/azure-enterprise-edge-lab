@@ -1,0 +1,274 @@
+name: Lab rot watch
+
+# Weekly static-analysis sweep for this Azure Front Door sandbox.
+# No Azure auth and no deployment. The goal is to catch drift in docs, IaC,
+# and runbook assumptions before learners/operators hit it.
+
+on:
+  schedule:
+    - cron: '0 15 * * 1' # Mondays 15:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  models: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+concurrency:
+  group: lab-rot-watch
+  cancel-in-progress: false
+
+jobs:
+  rot:
+    runs-on: ubuntu-latest
+    outputs:
+      findings: ${{ steps.collect.outputs.findings }}
+      has_findings: ${{ steps.collect.outputs.has_findings }}
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Docs reference parity check
+        id: refs
+        run: |
+          set -euo pipefail
+
+          refs=$(grep -RhoE '(scripts|infra/hooks)/[A-Za-z0-9._/-]+\.(sh|ps1)' README.md docs 2>/dev/null \
+            | sort -u || true)
+
+          missing=''
+          if [[ -n "$refs" ]]; then
+            while read -r path; do
+              [[ -n "$path" ]] || continue
+              if [[ ! -f "$path" ]]; then
+                missing+="- $path"$'\n'
+              fi
+            done <<< "$refs"
+          fi
+
+          {
+            echo 'missing<<EOF'
+            printf '%s' "$missing"
+            echo
+            echo EOF
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Front Door redirect rule safety check
+        id: fd_rule
+        run: |
+          set -euo pipefail
+          if grep -q 'UrlRedirect' infra/bicep/modules/frontdoor.bicep; then
+            echo 'found=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'found=false' >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Link check (README + docs)
+        id: links
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: >-
+            --no-progress
+            --max-concurrency 4
+            --accept 200,201,202,203,204,206,301,302,303,307,308,429
+            --exclude-path node_modules
+            --exclude-path .git
+            './README.md'
+            './docs/**/*.md'
+          fail: false
+          output: ./lychee-out.md
+        continue-on-error: true
+
+      - name: Bicep apiVersion age
+        id: bicep
+        run: |
+          set -euo pipefail
+          stale=$(grep -rEho "@[0-9]{4}-[0-9]{2}-[0-9]{2}(-preview)?'" infra/bicep 2>/dev/null \
+            | sort -u \
+            | awk -F'@' '$2 < "2024-01-01" {print}' \
+            || true)
+          {
+            echo 'stale<<EOF'
+            echo "${stale:-none}"
+            echo EOF
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Check mutable image tags in Dockerfiles
+        id: image_tags
+        run: |
+          set -euo pipefail
+          mutable=$(grep -RhnE '^FROM\s+[^@]+(:latest)?\s*$' apps/*Dockerfile apps/**/Dockerfile 2>/dev/null \
+            | grep -v '@sha256:' \
+            || true)
+          {
+            echo 'mutable<<EOF'
+            printf '%s' "$mutable"
+            echo
+            echo EOF
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Sample one runbook for LLM drift check
+        id: sample
+        run: |
+          set -euo pipefail
+          doc=$(find docs -maxdepth 1 -name '*.md' 2>/dev/null | sort -R | head -1)
+          if [[ -n "$doc" ]]; then
+            {
+              echo 'path<<EOF'
+              echo "$doc"
+              echo EOF
+              echo 'content<<EOF'
+              head -80 "$doc"
+              echo EOF
+            } >> "$GITHUB_OUTPUT"
+          else
+            echo 'path=' >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Ask model whether sampled runbook still looks current
+        id: llm
+        if: steps.sample.outputs.path != ''
+        uses: actions/ai-inference@v2
+        with:
+          model: openai/o3
+          max-completion-tokens: 300
+          system-prompt: |
+            You review one Azure runbook/lab document for an Azure Front Door
+            sandbox and decide whether it still looks consistent with current
+            Microsoft Azure documentation as of today.
+
+            Output format - strict:
+
+            VERDICT: <OK | REVIEW>
+            ISSUES:
+            - <bullet, only if VERDICT=REVIEW>
+            REASONING: <2 sentences max>
+
+            Default to OK. Only flag REVIEW for specific, named drift such as:
+            deprecated CLI flags, removed/renamed portal blades, changed SKU
+            names/defaults, or incompatible Front Door/WAF behavior assumptions.
+            Ignore wording and screenshot currency.
+          prompt: |
+            ## Doc path
+            `${{ steps.sample.outputs.path }}`
+
+            ## Doc excerpt (first 80 lines)
+
+            ${{ steps.sample.outputs.content }}
+
+      - name: Aggregate findings
+        id: collect
+        env:
+          MISSING_REFS: ${{ steps.refs.outputs.missing }}
+          FD_URL_REDIRECT_FOUND: ${{ steps.fd_rule.outputs.found }}
+          BICEP_STALE: ${{ steps.bicep.outputs.stale }}
+          MUTABLE_TAGS: ${{ steps.image_tags.outputs.mutable }}
+          LLM_RESPONSE: ${{ steps.llm.outputs.response }}
+          LLM_DOC: ${{ steps.sample.outputs.path }}
+        run: |
+          set -euo pipefail
+          findings=''
+
+          if [[ -n "$MISSING_REFS" ]]; then
+            findings+=$'\n### Broken script/hook references in docs\n\n'
+            findings+="$MISSING_REFS"$'\n'
+          fi
+
+          if [[ "$FD_URL_REDIRECT_FOUND" == 'true' ]]; then
+            findings+=$'\n### Front Door redirect-rule risk detected\n\n'
+            findings+='`UrlRedirect` found in `infra/bicep/modules/frontdoor.bicep`. In this repo, route-level `httpsRedirect` should be used without a rule-set `UrlRedirect` to avoid prolonged Front Door propagation failures.'$'\n'
+          fi
+
+          if [[ -n "$BICEP_STALE" && "$BICEP_STALE" != 'none' ]]; then
+            findings+=$'\n### Stale Bicep apiVersions (>18mo)\n\n```\n'
+            findings+="$BICEP_STALE"$'\n```\n'
+          fi
+
+          if [[ -n "$MUTABLE_TAGS" ]]; then
+            findings+=$'\n### Mutable container image tags\n\n'
+            findings+='These `FROM` lines are not digest-pinned and may drift over time:'$'\n\n```\n'
+            findings+="$MUTABLE_TAGS"$'\n```\n'
+          fi
+
+          if [[ -s lychee-out.md ]] && grep -q '\[ERROR\]' lychee-out.md; then
+            findings+=$'\n### Broken external links\n\n'
+            findings+='Representative sample:'$'\n```\n'
+            findings+=$(grep '\[ERROR\]' lychee-out.md | head -10 || true)
+            findings+=$'\n```\n'
+          fi
+
+          if [[ -n "$LLM_RESPONSE" ]] && echo "$LLM_RESPONSE" | grep -q '^VERDICT: REVIEW'; then
+            findings+=$'\n### Sampled runbook may be drifting from current Azure docs\n\n'
+            findings+="Sampled: `$LLM_DOC`"$'\n\n```\n'
+            findings+="$LLM_RESPONSE"$'\n```\n'
+          fi
+
+          if [[ -n "$findings" ]]; then
+            echo 'has_findings=true' >> "$GITHUB_OUTPUT"
+            {
+              echo 'findings<<EOF'
+              printf '%s' "$findings"
+              echo
+              echo EOF
+            } >> "$GITHUB_OUTPUT"
+          else
+            echo 'has_findings=false' >> "$GITHUB_OUTPUT"
+            echo 'Nothing to flag this week.'
+          fi
+
+      - name: Open or update lab-rot issue
+        if: steps.collect.outputs.has_findings == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FINDINGS: ${{ steps.collect.outputs.findings }}
+        run: |
+          set -euo pipefail
+          gh label create lab-rot \
+            --description 'Lab-rot watch findings' \
+            --color FBCA04 \
+            2>/dev/null || true
+
+          run_date="$(date -u +%Y-%m-%d)"
+          findings_hash="$(printf '%s' "$FINDINGS" | sha256sum | awk '{print $1}')"
+          marker="<!-- lab-rot-fingerprint:${findings_hash} -->"
+          title="Lab rot watch: review needed (week of ${run_date})"
+
+          body=$(cat <<EOF
+          Weekly static-analysis sweep flagged potential drift. **No live deployment was performed.**
+
+          $FINDINGS
+
+          ---
+          - [ ] Triaged
+          - [ ] Action taken (fix, follow-up issue, or close as not-a-problem)
+
+          $marker
+
+          _Auto-opened by [.github/workflows/lab-rot-watch.yml](.github/workflows/lab-rot-watch.yml)._ 
+          EOF
+          )
+
+          existing=''
+          open_issue_numbers=$(gh issue list --label lab-rot --state open --json number --jq '.[].number' || true)
+          if [[ -n "$open_issue_numbers" ]]; then
+            for issue_number in $open_issue_numbers; do
+              if gh issue view "$issue_number" --json body,comments \
+                | jq -e --arg marker "$marker" --arg findings "$FINDINGS" '(.body // "" | contains($marker) or contains($findings)) or ((.comments // []) | map((.body // "") | contains($marker) or contains($findings)) | any)' >/dev/null; then
+                existing="$issue_number"
+                break
+              fi
+            done
+          fi
+
+          if [[ -n "$existing" ]]; then
+            gh issue comment "$existing" --body "Lab rot watch rerun on ${run_date}: same findings still present.\n\n${marker}"
+          else
+            gh issue create \
+              --title "$title" \
+              --body "$body" \
+              --label lab-rot \
+              --assignee "${GITHUB_REPOSITORY_OWNER}"
+          fi
