@@ -220,10 +220,46 @@ bash scripts/toggle-failover.sh enable origin-a
 > For a **fast** failover demo (~2 minutes), make the origin fail its health probe instead of disabling it:
 >
 > ```bash
-> az containerapp update -g "$AZURE_RESOURCE_GROUP" -n afdemo-origin-a --min-replicas 0 --max-replicas 0
+> RG=$(azd env get-value AZURE_RESOURCE_GROUP)
+> APP=$(azd env get-value originAAppName)
+> REVISION=$(az containerapp revision list \
+>   --resource-group "$RG" \
+>   --name "$APP" \
+>   --query "[?properties.active].name | [0]" \
+>   --output tsv)
+> test -n "$REVISION"
+>
+> # Stop every replica in the active revision.
+> az containerapp revision deactivate \
+>   --resource-group "$RG" \
+>   --name "$APP" \
+>   --revision "$REVISION"
+>
+> restore_revision() {
+>   az containerapp revision activate \
+>     --resource-group "$RG" \
+>     --name "$APP" \
+>     --revision "$REVISION"
+> }
+> trap restore_revision EXIT
+>
+> origin=""
+> for attempt in {1..10}; do
+>   origin=$(curl -fsS "https://$AFD_ENDPOINT/api/health" 2>/dev/null | jq -r '.origin' || true)
+>   [[ "$origin" == "b" ]] && break
+>   sleep 30
+> done
+> if [[ "$origin" != "b" ]]; then
+>   echo "Origin B did not begin serving within 5 minutes." >&2
+>   exit 1
+> fi
+> curl -fsS "https://$AFD_ENDPOINT/api/health" | jq '{origin, region}'
+>
+> restore_revision
+> trap - EXIT
 > ```
 >
-> With `probeIntervalInSeconds: 30` and `successfulSamplesRequired: 3`, the edge drops origin A after roughly 90–120s. Restore with `--min-replicas 1 --max-replicas 3`.
+> Deactivating a revision stops all of its replicas. With `probeIntervalInSeconds: 30` and `successfulSamplesRequired: 3`, the edge drops origin A after roughly 90–120s.
 
 ---
 

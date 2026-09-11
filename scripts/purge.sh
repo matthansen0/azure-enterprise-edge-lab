@@ -10,7 +10,7 @@ set -euo pipefail
 PREFIX="${DEMO_PREFIX:-afdemo}"
 
 # Resource group: explicit env var, then the active azd environment, then the default.
-RG="${AZURE_RESOURCE_GROUP:-${DEMO_RG:-}}"
+RG="${DEMO_RG:-${AZURE_RESOURCE_GROUP:-}}"
 if [[ -z "$RG" ]] && command -v azd >/dev/null 2>&1; then
   RG=$(azd env get-values 2>/dev/null | sed -n 's/^AZURE_RESOURCE_GROUP="\(.*\)"$/\1/p') || RG=""
 fi
