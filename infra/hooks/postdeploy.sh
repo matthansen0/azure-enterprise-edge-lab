@@ -10,8 +10,9 @@ MAX_WAIT=1500  # 25 minutes — first deploy can exceed 15 min
 INTERVAL=20    # seconds between checks
 
 RG="${AZURE_RESOURCE_GROUP:-${DEMO_RG:-rg-afd-demo}}"
-PROFILE="afdemo-afd"
-ENDPOINT_NAME="afdemo-endpoint"
+PREFIX="${DEMO_PREFIX:-afdemo}"
+PROFILE="${PREFIX}-afd"
+ENDPOINT_NAME="${PREFIX}-endpoint"
 
 # Get the Front Door hostname
 HOSTNAME=$(az afd endpoint show \

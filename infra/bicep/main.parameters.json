@@ -3,7 +3,7 @@
   "contentVersion": "1.0.0.0",
   "parameters": {
     "prefix": {
-      "value": "afdemo"
+      "value": "${DEMO_PREFIX=afdemo}"
     },
     "locationA": {
       "value": "${AZURE_LOCATION}"
@@ -19,6 +19,9 @@
     },
     "logRetentionDays": {
       "value": 90
+    },
+    "deploySecurityCopilot": {
+      "value": "${DEPLOY_SECURITY_COPILOT=false}"
     }
   }
 }

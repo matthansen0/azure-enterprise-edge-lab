@@ -5,7 +5,7 @@
 - **Azure Container Apps** (not App Service — VM quotas were 0 in the target subscription)
   - Origin A: `eastus2`, Origin B: `westus2`
   - Shared ACR for container image builds
-- **Node.js 20 Express API** at `apps/api/` serving both API endpoints and static site
+- **Node.js 24 Express API** at `apps/api/` serving both API endpoints and static site
 - **Bicep IaC** at `infra/bicep/` with modular structure (`main.bicep` + 7 modules)
 - **Azure Developer CLI (azd)** configured via `azure.yaml` at repo root
 

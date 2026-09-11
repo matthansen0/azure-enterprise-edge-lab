@@ -190,20 +190,76 @@ bash scripts/generate-traffic.sh 150 10
 
 **Steps**:
 ```bash
-# Check current origin
-curl -s "https://$AFD_ENDPOINT/api/health" | jq .region
+# Check which origin is currently serving
+curl -s "https://$AFD_ENDPOINT/api/health" | jq '{origin, region}'
 
-# Disable Origin B
-bash scripts/toggle-failover.sh disable origin-b
+# Disable Origin A (priority 1 — the primary)
+bash scripts/toggle-failover.sh disable origin-a
 
-# Verify still healthy (Origin A serving)
-curl -s "https://$AFD_ENDPOINT/api/health" | jq .region
+# Wait up to 15 minutes for Origin B to begin serving
+origin=""
+for attempt in {1..30}; do
+  origin=$(curl -fsS "https://$AFD_ENDPOINT/api/health" | jq -r '.origin')
+  [[ "$origin" == "b" ]] && break
+  sleep 30
+done
+if [[ "$origin" != "b" ]]; then
+  echo "Origin B did not begin serving within 15 minutes." >&2
+  exit 1
+fi
+curl -fsS "https://$AFD_ENDPOINT/api/health" | jq '{origin, region}'
 
-# Re-enable Origin B
-bash scripts/toggle-failover.sh enable origin-b
+# Re-enable Origin A
+bash scripts/toggle-failover.sh enable origin-a
 ```
 
-**Expected Output**: Health endpoint continues responding. Region value confirms which origin is serving.
+**Expected Output**: The health endpoint keeps responding with HTTP 200 throughout, and `origin` eventually flips from `a` to `b`.
+
+> **Timing**: Disabling an origin is a Front Door **configuration** change, not a health-probe event, so it takes **5–15 minutes** to propagate globally — not one probe cycle. `az afd origin show` will report `enabledState: Disabled` and `deploymentStatus: NotStarted` for most of that window while the edge still serves from origin A. This is expected; keep polling.
+>
+> For a **fast** failover demo (~2 minutes), make the origin fail its health probe instead of disabling it:
+>
+> ```bash
+> RG=$(azd env get-value AZURE_RESOURCE_GROUP)
+> APP=$(azd env get-value originAAppName)
+> REVISION=$(az containerapp revision list \
+>   --resource-group "$RG" \
+>   --name "$APP" \
+>   --query "[?properties.active].name | [0]" \
+>   --output tsv)
+> test -n "$REVISION"
+>
+> # Stop every replica in the active revision.
+> az containerapp revision deactivate \
+>   --resource-group "$RG" \
+>   --name "$APP" \
+>   --revision "$REVISION"
+>
+> restore_revision() {
+>   az containerapp revision activate \
+>     --resource-group "$RG" \
+>     --name "$APP" \
+>     --revision "$REVISION"
+> }
+> trap restore_revision EXIT
+>
+> origin=""
+> for attempt in {1..10}; do
+>   origin=$(curl -fsS "https://$AFD_ENDPOINT/api/health" 2>/dev/null | jq -r '.origin' || true)
+>   [[ "$origin" == "b" ]] && break
+>   sleep 30
+> done
+> if [[ "$origin" != "b" ]]; then
+>   echo "Origin B did not begin serving within 5 minutes." >&2
+>   exit 1
+> fi
+> curl -fsS "https://$AFD_ENDPOINT/api/health" | jq '{origin, region}'
+>
+> restore_revision
+> trap - EXIT
+> ```
+>
+> Deactivating a revision stops all of its replicas. With `probeIntervalInSeconds: 30` and `successfulSamplesRequired: 3`, the edge drops origin A after roughly 90–120s.
 
 ---
 
@@ -248,7 +304,12 @@ az monitor log-analytics query \
 
 ### C3. Security Copilot — AI-Assisted SOC (Live)
 
-**Pre-req**: Security Copilot SCU capacity is deployed automatically by `azd up` (1 SCU, pay-as-you-go ~$4/hr).
+**Pre-req**: Security Copilot SCU capacity is **opt-in** and is *not* deployed by default. Enable it before `azd up` (1 SCU, pay-as-you-go ~$4/hr):
+
+```bash
+azd env set DEPLOY_SECURITY_COPILOT true
+azd up
+```
 
 **Steps**:
 
@@ -276,7 +337,7 @@ az monitor log-analytics query \
    > *"What response actions do you recommend for this incident?"*
    - Copilot suggests: block IP in WAF, create a custom rule, escalate to Tier 2, or close as expected traffic.
 
-Security Copilot is deployed as infrastructure alongside Sentinel — same `azd up`, same resource group, same teardown. Pay-as-you-go with no per-user licenses.
+Security Copilot is deployed as infrastructure alongside Sentinel — same `azd up`, same resource group, same teardown — once opted in. Pay-as-you-go with no per-user licenses.
 
 **Expected Output**: Live Copilot responses showing KQL generation, incident summary, and TI enrichment against real WAF log data.
 

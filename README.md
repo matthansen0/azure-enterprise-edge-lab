@@ -31,7 +31,10 @@ az login --use-device-code
 export DEMO_PREFIX="afdemo"          # Resource naming prefix (lowercase, no hyphens)
 export DEMO_LOCATION_A="eastus2"     # Primary region
 export DEMO_LOCATION_B="westus2"     # Secondary region (failover)
-export DEMO_RG="rg-afd-demo"         # Resource group name
+
+# DEMO_RG is only needed if you deployed without azd. The scripts otherwise
+# read AZURE_RESOURCE_GROUP from the active azd environment automatically.
+export DEMO_RG="rg-afd-demo"
 ```
 
 ### 3. Deploy
@@ -59,9 +62,9 @@ bash scripts/purge.sh /static/version.json
 # Generate traffic (benign load for rate-limit exercise)
 bash scripts/generate-traffic.sh
 
-# Toggle origin failover (disable/enable origin)
-bash scripts/toggle-failover.sh disable origin-b
-bash scripts/toggle-failover.sh enable origin-b
+# Toggle origin failover (disable primary, traffic shifts to origin-b)
+bash scripts/toggle-failover.sh disable origin-a
+bash scripts/toggle-failover.sh enable origin-a
 ```
 
 ### 5. Destroy

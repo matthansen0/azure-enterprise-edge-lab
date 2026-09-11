@@ -21,11 +21,10 @@
       }
     }
   },
-  "postCreateCommand": "cd apps/api && npm install",
+  "postCreateCommand": "cd apps/api && npm ci --ignore-scripts",
   "remoteEnv": {
     "DEMO_PREFIX": "afdemo",
     "DEMO_LOCATION_A": "eastus2",
-    "DEMO_LOCATION_B": "westus2",
-    "DEMO_RG": "rg-afd-demo"
+    "DEMO_LOCATION_B": "westus2"
   }
 }

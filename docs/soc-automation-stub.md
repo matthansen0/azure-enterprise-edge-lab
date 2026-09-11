@@ -101,11 +101,13 @@ resource logicApp 'Microsoft.Logic/workflows@2019-05-01' = {
 
 ---
 
-## Security Copilot Integration (Deployed)
+## Security Copilot Integration (Opt-In)
 
 ### Overview
 
-Microsoft Security Copilot is provisioned in this sandbox environment using the **pay-as-you-go** model (Security Compute Units). This removes the need for per-user licenses and bills only for consumed capacity (~$4/hour per SCU while provisioned).
+Microsoft Security Copilot can be provisioned in this sandbox environment using the **pay-as-you-go** model (Security Compute Units). This removes the need for per-user licenses and bills only for consumed capacity (~$4/hour per SCU while provisioned).
+
+It is **disabled by default** because of that hourly cost. Enable it with `azd env set DEPLOY_SECURITY_COPILOT true` before running `azd up`.
 
 The Bicep module at `infra/bicep/modules/security-copilot.bicep` deploys a minimum 1-SCU capacity that is automatically torn down with `azd down`.
 

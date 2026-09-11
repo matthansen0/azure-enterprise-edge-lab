@@ -84,6 +84,14 @@ resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
               name: 'PORT'
               value: '8080'
             }
+            {
+              name: 'ORIGIN_LABEL'
+              value: originLabel
+            }
+            {
+              name: 'AZURE_REGION'
+              value: location
+            }
           ]
         }
       ]

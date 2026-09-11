@@ -4,11 +4,12 @@ const os = require("os");
 
 const app = express();
 const PORT = process.env.PORT || 8080;
-const REGION = process.env.WEBSITE_SITE_NAME || os.hostname();
+const ORIGIN = process.env.ORIGIN_LABEL || "local";
+const REGION = process.env.AZURE_REGION || os.hostname();
 
 // --------------- Static Site ---------------
 // Serve static-site files from /static and root
-// In dev: ../static-site, in deployed App Service: ./static-site (sibling in zip)
+// In dev: ../static-site, in the container image: ./static-site (sibling of server.js)
 const fs = require("fs");
 const devPath = path.join(__dirname, "..", "static-site");
 const deployedPath = path.join(__dirname, "static-site");
@@ -42,6 +43,7 @@ app.get("/api/health", (req, res) => {
   res.setHeader("Cache-Control", "no-store");
   res.json({
     status: "healthy",
+    origin: ORIGIN,
     region: REGION,
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
@@ -54,6 +56,7 @@ app.get("/api/time", (req, res) => {
   res.json({
     utc: new Date().toISOString(),
     epoch: Date.now(),
+    origin: ORIGIN,
     region: REGION,
   });
 });
@@ -68,6 +71,7 @@ app.get("/api/headers", (req, res) => {
   res.json({
     headers: safeHeaders,
     clientIp: req.headers["x-forwarded-for"] || req.socket.remoteAddress,
+    origin: ORIGIN,
     region: REGION,
   });
 });
@@ -83,6 +87,7 @@ app.get("/api/cache-control", (req, res) => {
   res.json({
     cacheControl: cacheHeader,
     requestedMaxAge: maxAge,
+    origin: ORIGIN,
     region: REGION,
     generatedAt: new Date().toISOString(),
   });
@@ -100,13 +105,13 @@ app.get("/api/large", (req, res) => {
       tags: ["demo", "large-payload", "cdn", `group-${i % 10}`],
     });
   }
-  res.json({ count: items.length, region: REGION, items });
+  res.json({ count: items.length, origin: ORIGIN, region: REGION, items });
 });
 
 // --------------- Start ---------------
 if (require.main === module) {
   app.listen(PORT, () => {
-    console.log(`API server listening on port ${PORT} (region: ${REGION})`);
+    console.log(`API server listening on port ${PORT} (origin: ${ORIGIN}, region: ${REGION})`);
   });
 }
 

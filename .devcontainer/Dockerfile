@@ -6,8 +6,8 @@ RUN curl -sL https://aka.ms/InstallAzureCLIDeb | bash
 # Install Bicep CLI (via Azure CLI)
 RUN az bicep install
 
-# Install Node.js 20 LTS for API app
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+# Install Node.js 24 LTS for API app
+RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - \
     && apt-get install -y nodejs
 
 # Install jq, curl, openssh-client, hey (HTTP load generator)
