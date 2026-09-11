@@ -196,8 +196,18 @@ curl -s "https://$AFD_ENDPOINT/api/health" | jq '{origin, region}'
 # Disable Origin A (priority 1 — the primary)
 bash scripts/toggle-failover.sh disable origin-a
 
-# Verify still healthy — Origin B should now be serving
-curl -s "https://$AFD_ENDPOINT/api/health" | jq '{origin, region}'
+# Wait up to 15 minutes for Origin B to begin serving
+origin=""
+for attempt in {1..30}; do
+  origin=$(curl -fsS "https://$AFD_ENDPOINT/api/health" | jq -r '.origin')
+  [[ "$origin" == "b" ]] && break
+  sleep 30
+done
+if [[ "$origin" != "b" ]]; then
+  echo "Origin B did not begin serving within 15 minutes." >&2
+  exit 1
+fi
+curl -fsS "https://$AFD_ENDPOINT/api/health" | jq '{origin, region}'
 
 # Re-enable Origin A
 bash scripts/toggle-failover.sh enable origin-a

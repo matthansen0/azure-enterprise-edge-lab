@@ -200,7 +200,7 @@ output logAnalyticsWorkspace string = logAnalytics.outputs.workspaceName
 output wafPolicyName string = wafPolicy.outputs.wafPolicyName
 output customDomainConfig array = frontDoor.outputs.customDomainConfig
 #disable-next-line outputs-should-not-contain-secrets
-output securityCopilotCapacity string = enableSecurityCopilot && securityCopilot != null ? securityCopilot!.outputs.capacityName : 'not-deployed'
+output securityCopilotCapacity string = enableSecurityCopilot ? securityCopilot!.outputs.capacityName : 'not-deployed'
 
 // azd-required outputs
 output AZURE_CONTAINER_REGISTRY_ENDPOINT string = containerRegistry.outputs.acrLoginServer

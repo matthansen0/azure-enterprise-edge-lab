@@ -60,7 +60,22 @@ jobs:
         run: |
           set -euo pipefail
           compiled_template="${RUNNER_TEMP}/main.json"
-          az bicep build --file infra/bicep/main.bicep --outfile "$compiled_template"
+          bicep_diagnostics="${RUNNER_TEMP}/bicep-diagnostics.log"
+          if ! az bicep build --file infra/bicep/main.bicep --outfile "$compiled_template" 2> "$bicep_diagnostics"; then
+            cat "$bicep_diagnostics" >&2
+            exit 1
+          fi
+          cat "$bicep_diagnostics" >&2
+
+          stale=$(grep -F 'Warning use-recent-api-versions:' "$bicep_diagnostics" \
+            | sed 's/^WARNING: //' \
+            || true)
+          {
+            echo 'stale<<EOF'
+            printf '%s' "${stale:-none}"
+            echo
+            echo EOF
+          } >> "$GITHUB_OUTPUT"
 
           if jq -e '[.. | objects | .actions? // empty | .[]? | select(.name? == "UrlRedirect")] | length > 0' "$compiled_template" >/dev/null; then
             echo 'found=true' >> "$GITHUB_OUTPUT"
@@ -103,6 +118,7 @@ jobs:
         env:
           MISSING_REFS: ${{ steps.refs.outputs.missing }}
           FD_URL_REDIRECT_FOUND: ${{ steps.fd_rule.outputs.found }}
+          BICEP_STALE: ${{ steps.fd_rule.outputs.stale }}
           MUTABLE_TAGS: ${{ steps.image_tags.outputs.mutable }}
         run: |
           set -euo pipefail
@@ -116,6 +132,11 @@ jobs:
           if [[ "$FD_URL_REDIRECT_FOUND" == 'true' ]]; then
             findings+=$'\n### Front Door redirect-rule risk detected\n\n'
             findings+='`UrlRedirect` found in `infra/bicep/modules/frontdoor.bicep`. In this repo, route-level `httpsRedirect` should be used without a rule-set `UrlRedirect` to avoid prolonged Front Door propagation failures.'$'\n'
+          fi
+
+          if [[ -n "$BICEP_STALE" && "$BICEP_STALE" != 'none' ]]; then
+            findings+=$'\n### Stale Bicep API versions\n\n```\n'
+            findings+="$BICEP_STALE"$'\n```\n'
           fi
 
           if [[ -n "$MUTABLE_TAGS" ]]; then

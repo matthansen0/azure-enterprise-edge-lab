@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.47.16.16243",
-      "templateHash": "5695004527627513372"
+      "templateHash": "10393612303183920536"
     }
   },
   "parameters": {
@@ -1907,7 +1907,7 @@
     },
     "securityCopilotCapacity": {
       "type": "string",
-      "value": "[if(and(variables('enableSecurityCopilot'), not(equals(reference(resourceId('Microsoft.Resources/deployments', 'security-copilot'), '2025-04-01'), null()))), reference(resourceId('Microsoft.Resources/deployments', 'security-copilot'), '2025-04-01').outputs.capacityName.value, 'not-deployed')]"
+      "value": "[if(variables('enableSecurityCopilot'), reference(resourceId('Microsoft.Resources/deployments', 'security-copilot'), '2025-04-01').outputs.capacityName.value, 'not-deployed')]"
     },
     "AZURE_CONTAINER_REGISTRY_ENDPOINT": {
       "type": "string",

@@ -39,12 +39,14 @@ describe("API Endpoints", () => {
     assert.equal(res.status, 200);
     assert.ok(res.body.utc);
     assert.ok(res.body.epoch);
+    assert.equal(res.body.origin, "test-origin");
   });
 
   it("GET /api/headers returns headers object", async () => {
     const res = await request("/api/headers");
     assert.equal(res.status, 200);
     assert.ok(res.body.headers);
+    assert.equal(res.body.origin, "test-origin");
     assert.ok(res.body.region);
   });
 
@@ -52,12 +54,14 @@ describe("API Endpoints", () => {
     const res = await request("/api/cache-control?maxage=120");
     assert.equal(res.status, 200);
     assert.equal(res.headers["cache-control"], "public, max-age=120");
+    assert.equal(res.body.origin, "test-origin");
   });
 
   it("GET /api/cache-control with no-store policy", async () => {
     const res = await request("/api/cache-control?policy=no-store");
     assert.equal(res.status, 200);
     assert.equal(res.headers["cache-control"], "no-store");
+    assert.equal(res.body.origin, "test-origin");
   });
 
   it("GET /api/large returns 1000 items", async () => {
@@ -65,5 +69,6 @@ describe("API Endpoints", () => {
     assert.equal(res.status, 200);
     assert.equal(res.body.count, 1000);
     assert.equal(res.body.items.length, 1000);
+    assert.equal(res.body.origin, "test-origin");
   });
 });
