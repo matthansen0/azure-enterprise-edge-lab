@@ -10,8 +10,9 @@ $MaxWait  = 1500  # 25 minutes - first deploy can exceed 15 min
 $Interval = 20    # seconds between checks
 
 $RG          = if ($env:AZURE_RESOURCE_GROUP) { $env:AZURE_RESOURCE_GROUP } elseif ($env:DEMO_RG) { $env:DEMO_RG } else { 'rg-afd-demo' }
-$Profile     = 'afdemo-afd'
-$EndpointName = 'afdemo-endpoint'
+$Prefix      = if ($env:DEMO_PREFIX) { $env:DEMO_PREFIX } else { 'afdemo' }
+$Profile     = "$Prefix-afd"
+$EndpointName = "$Prefix-endpoint"
 
 # Get the Front Door hostname
 $Hostname = az afd endpoint show `

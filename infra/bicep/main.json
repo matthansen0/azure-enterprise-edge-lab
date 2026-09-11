@@ -4,8 +4,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.37.4.10188",
-      "templateHash": "16524944038766782295"
+      "version": "0.47.16.16243",
+      "templateHash": "5695004527627513372"
     }
   },
   "parameters": {
@@ -55,6 +55,13 @@
         "description": "Log retention days"
       }
     },
+    "deploySecurityCopilot": {
+      "type": "string",
+      "defaultValue": "false",
+      "metadata": {
+        "description": "Deploy Security Copilot pay-as-you-go capacity (~$4/hr per SCU). Set to \"true\" to enable."
+      }
+    },
     "tags": {
       "type": "object",
       "defaultValue": {
@@ -67,10 +74,13 @@
       }
     }
   },
+  "variables": {
+    "enableSecurityCopilot": "[equals(toLower(parameters('deploySecurityCopilot')), 'true')]"
+  },
   "resources": [
     {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "log-analytics",
       "properties": {
         "expressionEvaluationOptions": {
@@ -97,8 +107,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.37.4.10188",
-              "templateHash": "11073868606076265879"
+              "version": "0.47.16.16243",
+              "templateHash": "2562899061740571026"
             }
           },
           "parameters": {
@@ -181,7 +191,7 @@
     },
     {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "waf-policy",
       "properties": {
         "expressionEvaluationOptions": {
@@ -208,8 +218,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.37.4.10188",
-              "templateHash": "14697375007114271188"
+              "version": "0.47.16.16243",
+              "templateHash": "16948913943982213597"
             }
           },
           "parameters": {
@@ -376,7 +386,7 @@
     },
     {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "container-registry",
       "properties": {
         "expressionEvaluationOptions": {
@@ -400,8 +410,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.37.4.10188",
-              "templateHash": "11472169059869208085"
+              "version": "0.47.16.16243",
+              "templateHash": "16072310103118150387"
             }
           },
           "parameters": {
@@ -462,7 +472,7 @@
     },
     {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "origin-a",
       "properties": {
         "expressionEvaluationOptions": {
@@ -483,10 +493,10 @@
             "value": "origin-a"
           },
           "acrLoginServer": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'container-registry'), '2022-09-01').outputs.acrLoginServer.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'container-registry'), '2025-04-01').outputs.acrLoginServer.value]"
           },
           "acrName": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'container-registry'), '2022-09-01').outputs.acrName.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'container-registry'), '2025-04-01').outputs.acrName.value]"
           },
           "tags": {
             "value": "[parameters('tags')]"
@@ -498,8 +508,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.37.4.10188",
-              "templateHash": "16310998261791860032"
+              "version": "0.47.16.16243",
+              "templateHash": "6700707450504979307"
             }
           },
           "parameters": {
@@ -606,6 +616,14 @@
                         {
                           "name": "PORT",
                           "value": "8080"
+                        },
+                        {
+                          "name": "ORIGIN_LABEL",
+                          "value": "[parameters('originLabel')]"
+                        },
+                        {
+                          "name": "AZURE_REGION",
+                          "value": "[parameters('location')]"
                         }
                       ]
                     }
@@ -647,7 +665,7 @@
     },
     {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "origin-b",
       "properties": {
         "expressionEvaluationOptions": {
@@ -668,10 +686,10 @@
             "value": "origin-b"
           },
           "acrLoginServer": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'container-registry'), '2022-09-01').outputs.acrLoginServer.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'container-registry'), '2025-04-01').outputs.acrLoginServer.value]"
           },
           "acrName": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'container-registry'), '2022-09-01').outputs.acrName.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'container-registry'), '2025-04-01').outputs.acrName.value]"
           },
           "tags": {
             "value": "[parameters('tags')]"
@@ -683,8 +701,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.37.4.10188",
-              "templateHash": "16310998261791860032"
+              "version": "0.47.16.16243",
+              "templateHash": "6700707450504979307"
             }
           },
           "parameters": {
@@ -791,6 +809,14 @@
                         {
                           "name": "PORT",
                           "value": "8080"
+                        },
+                        {
+                          "name": "ORIGIN_LABEL",
+                          "value": "[parameters('originLabel')]"
+                        },
+                        {
+                          "name": "AZURE_REGION",
+                          "value": "[parameters('location')]"
                         }
                       ]
                     }
@@ -832,7 +858,7 @@
     },
     {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "frontdoor",
       "properties": {
         "expressionEvaluationOptions": {
@@ -844,13 +870,13 @@
             "value": "[parameters('prefix')]"
           },
           "originAHostname": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'origin-a'), '2022-09-01').outputs.hostname.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'origin-a'), '2025-04-01').outputs.hostname.value]"
           },
           "originBHostname": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'origin-b'), '2022-09-01').outputs.hostname.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'origin-b'), '2025-04-01').outputs.hostname.value]"
           },
           "wafPolicyId": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'waf-policy'), '2022-09-01').outputs.wafPolicyId.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'waf-policy'), '2025-04-01').outputs.wafPolicyId.value]"
           },
           "tags": {
             "value": "[parameters('tags')]"
@@ -862,8 +888,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.37.4.10188",
-              "templateHash": "1463113600144478996"
+              "version": "0.47.16.16243",
+              "templateHash": "1664223598007815615"
             }
           },
           "parameters": {
@@ -1210,7 +1236,7 @@
     },
     {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "diagnostics",
       "properties": {
         "expressionEvaluationOptions": {
@@ -1222,16 +1248,16 @@
             "value": "[parameters('prefix')]"
           },
           "frontDoorProfileName": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'frontdoor'), '2022-09-01').outputs.profileName.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'frontdoor'), '2025-04-01').outputs.profileName.value]"
           },
           "workspaceId": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'log-analytics'), '2022-09-01').outputs.workspaceId.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'log-analytics'), '2025-04-01').outputs.workspaceId.value]"
           },
           "caeNameA": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'origin-a'), '2022-09-01').outputs.environmentName.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'origin-a'), '2025-04-01').outputs.environmentName.value]"
           },
           "caeNameB": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'origin-b'), '2022-09-01').outputs.environmentName.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'origin-b'), '2025-04-01').outputs.environmentName.value]"
           }
         },
         "template": {
@@ -1240,8 +1266,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.37.4.10188",
-              "templateHash": "12145870379921159877"
+              "version": "0.47.16.16243",
+              "templateHash": "9719370222978299748"
             }
           },
           "parameters": {
@@ -1282,7 +1308,7 @@
             {
               "type": "Microsoft.Insights/diagnosticSettings",
               "apiVersion": "2021-05-01-preview",
-              "scope": "[format('Microsoft.Cdn/profiles/{0}', parameters('frontDoorProfileName'))]",
+              "scope": "[resourceId('Microsoft.Cdn/profiles', parameters('frontDoorProfileName'))]",
               "name": "[format('{0}-afd-diag', parameters('prefix'))]",
               "properties": {
                 "workspaceId": "[parameters('workspaceId')]",
@@ -1313,7 +1339,7 @@
               "condition": "[not(empty(parameters('caeNameA')))]",
               "type": "Microsoft.Insights/diagnosticSettings",
               "apiVersion": "2021-05-01-preview",
-              "scope": "[format('Microsoft.App/managedEnvironments/{0}', parameters('caeNameA'))]",
+              "scope": "[resourceId('Microsoft.App/managedEnvironments', parameters('caeNameA'))]",
               "name": "[format('{0}-cae-a-diag', parameters('prefix'))]",
               "properties": {
                 "workspaceId": "[parameters('workspaceId')]",
@@ -1339,7 +1365,7 @@
               "condition": "[not(empty(parameters('caeNameB')))]",
               "type": "Microsoft.Insights/diagnosticSettings",
               "apiVersion": "2021-05-01-preview",
-              "scope": "[format('Microsoft.App/managedEnvironments/{0}', parameters('caeNameB'))]",
+              "scope": "[resourceId('Microsoft.App/managedEnvironments', parameters('caeNameB'))]",
               "name": "[format('{0}-cae-b-diag', parameters('prefix'))]",
               "properties": {
                 "workspaceId": "[parameters('workspaceId')]",
@@ -1373,7 +1399,7 @@
     },
     {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "sentinel-content",
       "properties": {
         "expressionEvaluationOptions": {
@@ -1382,10 +1408,10 @@
         "mode": "Incremental",
         "parameters": {
           "workspaceId": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'log-analytics'), '2022-09-01').outputs.workspaceId.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'log-analytics'), '2025-04-01').outputs.workspaceId.value]"
           },
           "workspaceName": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'log-analytics'), '2022-09-01').outputs.workspaceName.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'log-analytics'), '2025-04-01').outputs.workspaceName.value]"
           },
           "location": {
             "value": "[parameters('locationA')]"
@@ -1400,8 +1426,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.37.4.10188",
-              "templateHash": "8986278649945163646"
+              "version": "0.47.16.16243",
+              "templateHash": "14871081029017617076"
             }
           },
           "parameters": {
@@ -1467,7 +1493,7 @@
             {
               "type": "Microsoft.SecurityInsights/contentPackages",
               "apiVersion": "2024-01-01-preview",
-              "scope": "[format('Microsoft.OperationalInsights/workspaces/{0}', parameters('workspaceName'))]",
+              "scope": "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspaceName'))]",
               "name": "azuresentinel.azure-sentinel-solution-azurewebapplicationfirewall",
               "properties": {
                 "contentId": "azuresentinel.azure-sentinel-solution-azurewebapplicationfirewall",
@@ -1487,7 +1513,7 @@
             {
               "type": "Microsoft.SecurityInsights/contentPackages",
               "apiVersion": "2024-01-01-preview",
-              "scope": "[format('Microsoft.OperationalInsights/workspaces/{0}', parameters('workspaceName'))]",
+              "scope": "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspaceName'))]",
               "name": "azuresentinel.azure-sentinel-solution-networksession",
               "properties": {
                 "contentId": "azuresentinel.azure-sentinel-solution-networksession",
@@ -1507,7 +1533,7 @@
             {
               "type": "Microsoft.SecurityInsights/onboardingStates",
               "apiVersion": "2024-01-01-preview",
-              "scope": "[format('Microsoft.OperationalInsights/workspaces/{0}', parameters('workspaceName'))]",
+              "scope": "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspaceName'))]",
               "name": "default",
               "properties": {}
             }
@@ -1520,7 +1546,7 @@
     },
     {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "monitor-workbooks",
       "properties": {
         "expressionEvaluationOptions": {
@@ -1535,7 +1561,7 @@
             "value": "[parameters('locationA')]"
           },
           "workspaceId": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'log-analytics'), '2022-09-01').outputs.workspaceId.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'log-analytics'), '2025-04-01').outputs.workspaceId.value]"
           },
           "tags": {
             "value": "[parameters('tags')]"
@@ -1547,8 +1573,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.37.4.10188",
-              "templateHash": "17074201829773893470"
+              "version": "0.47.16.16243",
+              "templateHash": "7461402438526332710"
             }
           },
           "parameters": {
@@ -1590,7 +1616,7 @@
                 "displayName": "[format('{0} Front Door Traffic Analytics', parameters('prefix'))]",
                 "category": "workbook",
                 "sourceId": "[parameters('workspaceId')]",
-                "serializedData": "[string(createObject('version', 'Notebook/1.0', 'items', createArray(createObject('type', 1, 'content', createObject('json', '# Front Door Traffic Analytics\\n---\\nThis workbook provides traffic, latency, and cache analytics for the Azure Front Door Premium profile.'), 'name', 'header'), createObject('type', 3, 'content', createObject('version', 'KqlItem/1.0', 'query', 'AzureDiagnostics\\n| where ResourceProvider == \"MICROSOFT.CDN\" and Category == \"FrontDoorAccessLog\"\\n| summarize Requests = count() by bin(TimeGenerated, 5m)\\n| render timechart', 'size', 0, 'title', 'Request Volume (5-min bins)', 'timeContext', createObject('durationMs', 86400000), 'queryType', 0, 'resourceType', 'microsoft.operationalinsights/workspaces', 'crossComponentResources', createArray(parameters('workspaceId'))), 'name', 'requestVolume'), createObject('type', 3, 'content', createObject('version', 'KqlItem/1.0', 'query', 'AzureDiagnostics\\n| where ResourceProvider == \"MICROSOFT.CDN\" and Category == \"FrontDoorAccessLog\"\\n| summarize P50=percentile(todouble(timeTaken_s), 50), P95=percentile(todouble(timeTaken_s), 95), P99=percentile(todouble(timeTaken_s), 99) by bin(TimeGenerated, 5m)\\n| render timechart', 'size', 0, 'title', 'Latency Percentiles (P50, P95, P99)', 'timeContext', createObject('durationMs', 86400000), 'queryType', 0, 'resourceType', 'microsoft.operationalinsights/workspaces', 'crossComponentResources', createArray(parameters('workspaceId'))), 'name', 'latencyPercentiles'), createObject('type', 3, 'content', createObject('version', 'KqlItem/1.0', 'query', 'AzureDiagnostics\\n| where ResourceProvider == \"MICROSOFT.CDN\" and Category == \"FrontDoorAccessLog\"\\n| extend IsHit = cacheStatus_s has \"HIT\"\\n| summarize Total = count(), Hits = countif(IsHit) by bin(TimeGenerated, 5m)\\n| extend HitRatio = round(100.0 * Hits / Total, 1)\\n| project TimeGenerated, HitRatio\\n| render timechart', 'size', 0, 'title', 'Cache Hit Ratio (%)', 'timeContext', createObject('durationMs', 86400000), 'queryType', 0, 'resourceType', 'microsoft.operationalinsights/workspaces', 'crossComponentResources', createArray(parameters('workspaceId'))), 'name', 'cacheHitRatio'), createObject('type', 3, 'content', createObject('version', 'KqlItem/1.0', 'query', 'AzureDiagnostics\\n| where ResourceProvider == \"MICROSOFT.CDN\" and Category == \"FrontDoorAccessLog\"\\n| summarize Count = count() by httpStatusCode_d\\n| order by Count desc\\n| render piechart', 'size', 0, 'title', 'HTTP Status Code Distribution', 'timeContext', createObject('durationMs', 86400000), 'queryType', 0, 'resourceType', 'microsoft.operationalinsights/workspaces', 'crossComponentResources', createArray(parameters('workspaceId'))), 'name', 'statusCodes'), createObject('type', 3, 'content', createObject('version', 'KqlItem/1.0', 'query', 'AzureDiagnostics\\n| where ResourceProvider == \"MICROSOFT.CDN\" and Category == \"FrontDoorAccessLog\"\\n| summarize Requests = count() by clientCountry_s\\n| top 20 by Requests\\n| render barchart', 'size', 0, 'title', 'Top 20 Countries by Request Volume', 'timeContext', createObject('durationMs', 86400000), 'queryType', 0, 'resourceType', 'microsoft.operationalinsights/workspaces', 'crossComponentResources', createArray(parameters('workspaceId'))), 'name', 'geoDistribution'), createObject('type', 3, 'content', createObject('version', 'KqlItem/1.0', 'query', 'AzureDiagnostics\\n| where ResourceProvider == \"MICROSOFT.CDN\" and Category == \"FrontDoorHealthProbeLog\"\\n| summarize HealthyCount = countif(httpStatusCode_d >= 200 and httpStatusCode_d < 400), UnhealthyCount = countif(httpStatusCode_d >= 400 or httpStatusCode_d == 0) by origin_s, bin(TimeGenerated, 5m)\\n| render timechart', 'size', 0, 'title', 'Origin Health Probe Results', 'timeContext', createObject('durationMs', 86400000), 'queryType', 0, 'resourceType', 'microsoft.operationalinsights/workspaces', 'crossComponentResources', createArray(parameters('workspaceId'))), 'name', 'originHealth')), 'isLocked', false()))]"
+                "serializedData": "[string(createObject('version', 'Notebook/1.0', 'items', createArray(createObject('type', 1, 'content', createObject('json', '# Front Door Traffic Analytics\n---\nThis workbook provides traffic, latency, and cache analytics for the Azure Front Door Premium profile.'), 'name', 'header'), createObject('type', 3, 'content', createObject('version', 'KqlItem/1.0', 'query', 'AzureDiagnostics\n| where ResourceProvider == \"MICROSOFT.CDN\" and Category == \"FrontDoorAccessLog\"\n| summarize Requests = count() by bin(TimeGenerated, 5m)\n| render timechart', 'size', 0, 'title', 'Request Volume (5-min bins)', 'timeContext', createObject('durationMs', 86400000), 'queryType', 0, 'resourceType', 'microsoft.operationalinsights/workspaces', 'crossComponentResources', createArray(parameters('workspaceId'))), 'name', 'requestVolume'), createObject('type', 3, 'content', createObject('version', 'KqlItem/1.0', 'query', 'AzureDiagnostics\n| where ResourceProvider == \"MICROSOFT.CDN\" and Category == \"FrontDoorAccessLog\"\n| summarize P50=percentile(todouble(timeTaken_s), 50), P95=percentile(todouble(timeTaken_s), 95), P99=percentile(todouble(timeTaken_s), 99) by bin(TimeGenerated, 5m)\n| render timechart', 'size', 0, 'title', 'Latency Percentiles (P50, P95, P99)', 'timeContext', createObject('durationMs', 86400000), 'queryType', 0, 'resourceType', 'microsoft.operationalinsights/workspaces', 'crossComponentResources', createArray(parameters('workspaceId'))), 'name', 'latencyPercentiles'), createObject('type', 3, 'content', createObject('version', 'KqlItem/1.0', 'query', 'AzureDiagnostics\n| where ResourceProvider == \"MICROSOFT.CDN\" and Category == \"FrontDoorAccessLog\"\n| extend IsHit = cacheStatus_s has \"HIT\"\n| summarize Total = count(), Hits = countif(IsHit) by bin(TimeGenerated, 5m)\n| extend HitRatio = round(100.0 * Hits / Total, 1)\n| project TimeGenerated, HitRatio\n| render timechart', 'size', 0, 'title', 'Cache Hit Ratio (%)', 'timeContext', createObject('durationMs', 86400000), 'queryType', 0, 'resourceType', 'microsoft.operationalinsights/workspaces', 'crossComponentResources', createArray(parameters('workspaceId'))), 'name', 'cacheHitRatio'), createObject('type', 3, 'content', createObject('version', 'KqlItem/1.0', 'query', 'AzureDiagnostics\n| where ResourceProvider == \"MICROSOFT.CDN\" and Category == \"FrontDoorAccessLog\"\n| summarize Count = count() by httpStatusCode_d\n| order by Count desc\n| render piechart', 'size', 0, 'title', 'HTTP Status Code Distribution', 'timeContext', createObject('durationMs', 86400000), 'queryType', 0, 'resourceType', 'microsoft.operationalinsights/workspaces', 'crossComponentResources', createArray(parameters('workspaceId'))), 'name', 'statusCodes'), createObject('type', 3, 'content', createObject('version', 'KqlItem/1.0', 'query', 'AzureDiagnostics\n| where ResourceProvider == \"MICROSOFT.CDN\" and Category == \"FrontDoorAccessLog\"\n| summarize Requests = count() by clientCountry_s\n| top 20 by Requests\n| render barchart', 'size', 0, 'title', 'Top 20 Countries by Request Volume', 'timeContext', createObject('durationMs', 86400000), 'queryType', 0, 'resourceType', 'microsoft.operationalinsights/workspaces', 'crossComponentResources', createArray(parameters('workspaceId'))), 'name', 'geoDistribution'), createObject('type', 3, 'content', createObject('version', 'KqlItem/1.0', 'query', 'AzureDiagnostics\n| where ResourceProvider == \"MICROSOFT.CDN\" and Category == \"FrontDoorHealthProbeLog\"\n| summarize HealthyCount = countif(httpStatusCode_d >= 200 and httpStatusCode_d < 400), UnhealthyCount = countif(httpStatusCode_d >= 400 or httpStatusCode_d == 0) by origin_s, bin(TimeGenerated, 5m)\n| render timechart', 'size', 0, 'title', 'Origin Health Probe Results', 'timeContext', createObject('durationMs', 86400000), 'queryType', 0, 'resourceType', 'microsoft.operationalinsights/workspaces', 'crossComponentResources', createArray(parameters('workspaceId'))), 'name', 'originHealth')), 'isLocked', false()))]"
               }
             },
             {
@@ -1604,7 +1630,7 @@
                 "displayName": "[format('{0} WAF Security Analytics', parameters('prefix'))]",
                 "category": "workbook",
                 "sourceId": "[parameters('workspaceId')]",
-                "serializedData": "[string(createObject('version', 'Notebook/1.0', 'items', createArray(createObject('type', 1, 'content', createObject('json', '# WAF Security Analytics\\n---\\nThis workbook provides Web Application Firewall analytics including blocked requests, rule triggers, and attack sources.'), 'name', 'header'), createObject('type', 3, 'content', createObject('version', 'KqlItem/1.0', 'query', 'AzureDiagnostics\\n| where ResourceProvider == \"MICROSOFT.CDN\" and Category == \"FrontDoorWebApplicationFirewallLog\"\\n| summarize Count = count() by action_s, bin(TimeGenerated, 5m)\\n| render timechart', 'size', 0, 'title', 'WAF Actions Over Time (Block / Allow / Log)', 'timeContext', createObject('durationMs', 86400000), 'queryType', 0, 'resourceType', 'microsoft.operationalinsights/workspaces', 'crossComponentResources', createArray(parameters('workspaceId'))), 'name', 'wafActions'), createObject('type', 3, 'content', createObject('version', 'KqlItem/1.0', 'query', 'AzureDiagnostics\\n| where ResourceProvider == \"MICROSOFT.CDN\" and Category == \"FrontDoorWebApplicationFirewallLog\"\\n| where action_s == \"Block\"\\n| summarize BlockedRequests = count() by bin(TimeGenerated, 5m)\\n| render timechart', 'size', 0, 'title', 'Blocked Requests Over Time', 'timeContext', createObject('durationMs', 86400000), 'queryType', 0, 'resourceType', 'microsoft.operationalinsights/workspaces', 'crossComponentResources', createArray(parameters('workspaceId'))), 'name', 'blockedRequests'), createObject('type', 3, 'content', createObject('version', 'KqlItem/1.0', 'query', 'AzureDiagnostics\\n| where ResourceProvider == \"MICROSOFT.CDN\" and Category == \"FrontDoorWebApplicationFirewallLog\"\\n| where action_s == \"Block\"\\n| summarize Count = count() by ruleName_s\\n| top 10 by Count\\n| render barchart', 'size', 0, 'title', 'Top 10 WAF Rules Triggered (Blocked)', 'timeContext', createObject('durationMs', 86400000), 'queryType', 0, 'resourceType', 'microsoft.operationalinsights/workspaces', 'crossComponentResources', createArray(parameters('workspaceId'))), 'name', 'topRules'), createObject('type', 3, 'content', createObject('version', 'KqlItem/1.0', 'query', 'AzureDiagnostics\\n| where ResourceProvider == \"MICROSOFT.CDN\" and Category == \"FrontDoorWebApplicationFirewallLog\"\\n| where action_s == \"Block\"\\n| summarize Count = count() by clientIP_s\\n| top 20 by Count\\n| render barchart', 'size', 0, 'title', 'Top 20 Blocked Source IPs', 'timeContext', createObject('durationMs', 86400000), 'queryType', 0, 'resourceType', 'microsoft.operationalinsights/workspaces', 'crossComponentResources', createArray(parameters('workspaceId'))), 'name', 'topBlockedIPs'), createObject('type', 3, 'content', createObject('version', 'KqlItem/1.0', 'query', 'AzureDiagnostics\\n| where ResourceProvider == \"MICROSOFT.CDN\" and Category == \"FrontDoorWebApplicationFirewallLog\"\\n| summarize Count = count() by policyName_s, action_s\\n| render barchart', 'size', 0, 'title', 'WAF Policy Actions Summary', 'timeContext', createObject('durationMs', 86400000), 'queryType', 0, 'resourceType', 'microsoft.operationalinsights/workspaces', 'crossComponentResources', createArray(parameters('workspaceId'))), 'name', 'policyActions'), createObject('type', 3, 'content', createObject('version', 'KqlItem/1.0', 'query', 'AzureDiagnostics\\n| where ResourceProvider == \"MICROSOFT.CDN\" and Category == \"FrontDoorWebApplicationFirewallLog\"\\n| where action_s == \"Block\"\\n| summarize Count = count() by clientCountry_s\\n| top 10 by Count\\n| render piechart', 'size', 0, 'title', 'Blocked Requests by Country', 'timeContext', createObject('durationMs', 86400000), 'queryType', 0, 'resourceType', 'microsoft.operationalinsights/workspaces', 'crossComponentResources', createArray(parameters('workspaceId'))), 'name', 'blockedByCountry')), 'isLocked', false()))]"
+                "serializedData": "[string(createObject('version', 'Notebook/1.0', 'items', createArray(createObject('type', 1, 'content', createObject('json', '# WAF Security Analytics\n---\nThis workbook provides Web Application Firewall analytics including blocked requests, rule triggers, and attack sources.'), 'name', 'header'), createObject('type', 3, 'content', createObject('version', 'KqlItem/1.0', 'query', 'AzureDiagnostics\n| where ResourceProvider == \"MICROSOFT.CDN\" and Category == \"FrontDoorWebApplicationFirewallLog\"\n| summarize Count = count() by action_s, bin(TimeGenerated, 5m)\n| render timechart', 'size', 0, 'title', 'WAF Actions Over Time (Block / Allow / Log)', 'timeContext', createObject('durationMs', 86400000), 'queryType', 0, 'resourceType', 'microsoft.operationalinsights/workspaces', 'crossComponentResources', createArray(parameters('workspaceId'))), 'name', 'wafActions'), createObject('type', 3, 'content', createObject('version', 'KqlItem/1.0', 'query', 'AzureDiagnostics\n| where ResourceProvider == \"MICROSOFT.CDN\" and Category == \"FrontDoorWebApplicationFirewallLog\"\n| where action_s == \"Block\"\n| summarize BlockedRequests = count() by bin(TimeGenerated, 5m)\n| render timechart', 'size', 0, 'title', 'Blocked Requests Over Time', 'timeContext', createObject('durationMs', 86400000), 'queryType', 0, 'resourceType', 'microsoft.operationalinsights/workspaces', 'crossComponentResources', createArray(parameters('workspaceId'))), 'name', 'blockedRequests'), createObject('type', 3, 'content', createObject('version', 'KqlItem/1.0', 'query', 'AzureDiagnostics\n| where ResourceProvider == \"MICROSOFT.CDN\" and Category == \"FrontDoorWebApplicationFirewallLog\"\n| where action_s == \"Block\"\n| summarize Count = count() by ruleName_s\n| top 10 by Count\n| render barchart', 'size', 0, 'title', 'Top 10 WAF Rules Triggered (Blocked)', 'timeContext', createObject('durationMs', 86400000), 'queryType', 0, 'resourceType', 'microsoft.operationalinsights/workspaces', 'crossComponentResources', createArray(parameters('workspaceId'))), 'name', 'topRules'), createObject('type', 3, 'content', createObject('version', 'KqlItem/1.0', 'query', 'AzureDiagnostics\n| where ResourceProvider == \"MICROSOFT.CDN\" and Category == \"FrontDoorWebApplicationFirewallLog\"\n| where action_s == \"Block\"\n| summarize Count = count() by clientIP_s\n| top 20 by Count\n| render barchart', 'size', 0, 'title', 'Top 20 Blocked Source IPs', 'timeContext', createObject('durationMs', 86400000), 'queryType', 0, 'resourceType', 'microsoft.operationalinsights/workspaces', 'crossComponentResources', createArray(parameters('workspaceId'))), 'name', 'topBlockedIPs'), createObject('type', 3, 'content', createObject('version', 'KqlItem/1.0', 'query', 'AzureDiagnostics\n| where ResourceProvider == \"MICROSOFT.CDN\" and Category == \"FrontDoorWebApplicationFirewallLog\"\n| summarize Count = count() by policyName_s, action_s\n| render barchart', 'size', 0, 'title', 'WAF Policy Actions Summary', 'timeContext', createObject('durationMs', 86400000), 'queryType', 0, 'resourceType', 'microsoft.operationalinsights/workspaces', 'crossComponentResources', createArray(parameters('workspaceId'))), 'name', 'policyActions'), createObject('type', 3, 'content', createObject('version', 'KqlItem/1.0', 'query', 'AzureDiagnostics\n| where ResourceProvider == \"MICROSOFT.CDN\" and Category == \"FrontDoorWebApplicationFirewallLog\"\n| where action_s == \"Block\"\n| summarize Count = count() by clientCountry_s\n| top 10 by Count\n| render piechart', 'size', 0, 'title', 'Blocked Requests by Country', 'timeContext', createObject('durationMs', 86400000), 'queryType', 0, 'resourceType', 'microsoft.operationalinsights/workspaces', 'crossComponentResources', createArray(parameters('workspaceId'))), 'name', 'blockedByCountry')), 'isLocked', false()))]"
               }
             }
           ],
@@ -1625,8 +1651,122 @@
       ]
     },
     {
+      "condition": "[variables('enableSecurityCopilot')]",
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
+      "name": "security-copilot",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "prefix": {
+            "value": "[parameters('prefix')]"
+          },
+          "location": {
+            "value": "eastus"
+          },
+          "numberOfUnits": {
+            "value": 1
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.47.16.16243",
+              "templateHash": "14495230075392772700"
+            }
+          },
+          "parameters": {
+            "prefix": {
+              "type": "string",
+              "metadata": {
+                "description": "Resource name prefix"
+              }
+            },
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Location for the Security Copilot capacity"
+              }
+            },
+            "numberOfUnits": {
+              "type": "int",
+              "defaultValue": 1,
+              "minValue": 1,
+              "metadata": {
+                "description": "Number of Security Compute Units (minimum 1)"
+              }
+            },
+            "crossGeoCompute": {
+              "type": "string",
+              "defaultValue": "NotAllowed",
+              "allowedValues": [
+                "Allowed",
+                "NotAllowed"
+              ],
+              "metadata": {
+                "description": "Allow cross-geo compute for overflow"
+              }
+            },
+            "geo": {
+              "type": "string",
+              "defaultValue": "US",
+              "allowedValues": [
+                "US",
+                "EU",
+                "UK",
+                "ANZ"
+              ],
+              "metadata": {
+                "description": "Geo for data residency (US, EU, UK, ANZ)"
+              }
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {},
+              "metadata": {
+                "description": "Tags"
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.SecurityCopilot/capacities",
+              "apiVersion": "2023-12-01-preview",
+              "name": "[format('{0}-seccopilot', parameters('prefix'))]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "numberOfUnits": "[parameters('numberOfUnits')]",
+                "crossGeoCompute": "[parameters('crossGeoCompute')]",
+                "geo": "[parameters('geo')]"
+              }
+            }
+          ],
+          "outputs": {
+            "capacityName": {
+              "type": "string",
+              "value": "[format('{0}-seccopilot', parameters('prefix'))]"
+            },
+            "capacityId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.SecurityCopilot/capacities', format('{0}-seccopilot', parameters('prefix')))]"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
       "name": "dashboard",
       "properties": {
         "expressionEvaluationOptions": {
@@ -1641,7 +1781,7 @@
             "value": "[parameters('locationA')]"
           },
           "workspaceId": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'log-analytics'), '2022-09-01').outputs.workspaceId.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'log-analytics'), '2025-04-01').outputs.workspaceId.value]"
           },
           "tags": {
             "value": "[parameters('tags')]"
@@ -1653,8 +1793,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.37.4.10188",
-              "templateHash": "10224175599715993236"
+              "version": "0.47.16.16243",
+              "templateHash": "17318537823488140123"
             }
           },
           "parameters": {
@@ -1685,7 +1825,7 @@
             }
           },
           "variables": {
-            "$fxv#0": "{\r\n  \"version\": \"Notebook/1.0\",\r\n  \"items\": [\r\n    {\r\n      \"type\": 1,\r\n      \"content\": {\r\n        \"json\": \"# Azure Front Door — CDN + WAF Dashboard\\n\\nOperational visibility for the Azure Front Door sandbox.\"\r\n      },\r\n      \"name\": \"header\"\r\n    },\r\n    {\r\n      \"type\": 9,\r\n      \"content\": {\r\n        \"version\": \"KqlParameterItem/1.0\",\r\n        \"parameters\": [\r\n          {\r\n            \"name\": \"TimeRange\",\r\n            \"type\": 4,\r\n            \"isRequired\": true,\r\n            \"value\": {\r\n              \"durationMs\": 3600000\r\n            },\r\n            \"typeSettings\": {\r\n              \"selectableValues\": [\r\n                { \"durationMs\": 300000 },\r\n                { \"durationMs\": 900000 },\r\n                { \"durationMs\": 1800000 },\r\n                { \"durationMs\": 3600000 },\r\n                { \"durationMs\": 14400000 },\r\n                { \"durationMs\": 43200000 },\r\n                { \"durationMs\": 86400000 }\r\n              ]\r\n            }\r\n          }\r\n        ]\r\n      },\r\n      \"name\": \"parameters\"\r\n    },\r\n    {\r\n      \"type\": 1,\r\n      \"content\": {\r\n        \"json\": \"## Traffic Overview\"\r\n      },\r\n      \"name\": \"section-traffic\"\r\n    },\r\n    {\r\n      \"type\": 3,\r\n      \"content\": {\r\n        \"version\": \"KqlItem/1.0\",\r\n        \"query\": \"AzureDiagnostics\\n| where Category == \\\"FrontDoorAccessLog\\\"\\n| where TimeGenerated {TimeRange}\\n| summarize RequestCount = count() by bin(TimeGenerated, 5m)\\n| render timechart\",\r\n        \"size\": 0,\r\n        \"title\": \"Requests Over Time\",\r\n        \"queryType\": 0,\r\n        \"visualization\": \"timechart\"\r\n      },\r\n      \"name\": \"requests-over-time\"\r\n    },\r\n    {\r\n      \"type\": 3,\r\n      \"content\": {\r\n        \"version\": \"KqlItem/1.0\",\r\n        \"query\": \"AzureDiagnostics\\n| where Category == \\\"FrontDoorAccessLog\\\"\\n| where TimeGenerated {TimeRange}\\n| summarize Count = count() by httpStatusCode_s\\n| render piechart\",\r\n        \"size\": 1,\r\n        \"title\": \"Response Status Codes\",\r\n        \"queryType\": 0,\r\n        \"visualization\": \"piechart\"\r\n      },\r\n      \"name\": \"status-codes\"\r\n    },\r\n    {\r\n      \"type\": 1,\r\n      \"content\": {\r\n        \"json\": \"## Cache Performance\"\r\n      },\r\n      \"name\": \"section-cache\"\r\n    },\r\n    {\r\n      \"type\": 3,\r\n      \"content\": {\r\n        \"version\": \"KqlItem/1.0\",\r\n        \"query\": \"AzureDiagnostics\\n| where Category == \\\"FrontDoorAccessLog\\\"\\n| where TimeGenerated {TimeRange}\\n| summarize Count = count() by cacheStatus_s\\n| render piechart\",\r\n        \"size\": 1,\r\n        \"title\": \"Cache Hit/Miss Ratio\",\r\n        \"queryType\": 0,\r\n        \"visualization\": \"piechart\"\r\n      },\r\n      \"name\": \"cache-hitrate\"\r\n    },\r\n    {\r\n      \"type\": 3,\r\n      \"content\": {\r\n        \"version\": \"KqlItem/1.0\",\r\n        \"query\": \"AzureDiagnostics\\n| where Category == \\\"FrontDoorAccessLog\\\"\\n| where TimeGenerated {TimeRange}\\n| summarize AvgLatency = avg(timeTaken_d), P95 = percentile(timeTaken_d, 95) by bin(TimeGenerated, 5m)\\n| render timechart\",\r\n        \"size\": 0,\r\n        \"title\": \"Latency (Avg & P95)\",\r\n        \"queryType\": 0,\r\n        \"visualization\": \"timechart\"\r\n      },\r\n      \"name\": \"latency\"\r\n    },\r\n    {\r\n      \"type\": 1,\r\n      \"content\": {\r\n        \"json\": \"## WAF / Security\"\r\n      },\r\n      \"name\": \"section-waf\"\r\n    },\r\n    {\r\n      \"type\": 3,\r\n      \"content\": {\r\n        \"version\": \"KqlItem/1.0\",\r\n        \"query\": \"AzureDiagnostics\\n| where Category == \\\"FrontDoorWebApplicationFirewallLog\\\"\\n| where TimeGenerated {TimeRange}\\n| summarize Count = count() by action_s, ruleName_s\\n| sort by Count desc\",\r\n        \"size\": 0,\r\n        \"title\": \"WAF Actions by Rule\",\r\n        \"queryType\": 0,\r\n        \"visualization\": \"table\"\r\n      },\r\n      \"name\": \"waf-actions\"\r\n    },\r\n    {\r\n      \"type\": 3,\r\n      \"content\": {\r\n        \"version\": \"KqlItem/1.0\",\r\n        \"query\": \"AzureDiagnostics\\n| where Category == \\\"FrontDoorWebApplicationFirewallLog\\\"\\n| where action_s == \\\"Block\\\"\\n| where TimeGenerated {TimeRange}\\n| summarize Blocks = count() by bin(TimeGenerated, 5m)\\n| render timechart\",\r\n        \"size\": 0,\r\n        \"title\": \"WAF Blocks Over Time\",\r\n        \"queryType\": 0,\r\n        \"visualization\": \"timechart\"\r\n      },\r\n      \"name\": \"waf-blocks-time\"\r\n    },\r\n    {\r\n      \"type\": 1,\r\n      \"content\": {\r\n        \"json\": \"## Origin Health\"\r\n      },\r\n      \"name\": \"section-health\"\r\n    },\r\n    {\r\n      \"type\": 3,\r\n      \"content\": {\r\n        \"version\": \"KqlItem/1.0\",\r\n        \"query\": \"AzureDiagnostics\\n| where Category == \\\"FrontDoorHealthProbeLog\\\"\\n| where TimeGenerated {TimeRange}\\n| summarize Count = count() by healthProbeStatus_s, originName_s\\n| render barchart\",\r\n        \"size\": 0,\r\n        \"title\": \"Health Probe Results by Origin\",\r\n        \"queryType\": 0,\r\n        \"visualization\": \"barchart\"\r\n      },\r\n      \"name\": \"health-probes\"\r\n    }\r\n  ],\r\n  \"$schema\": \"https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json\"\r\n}\r\n"
+            "$fxv#0": "{\n  \"version\": \"Notebook/1.0\",\n  \"items\": [\n    {\n      \"type\": 1,\n      \"content\": {\n        \"json\": \"# Azure Front Door \\u2014 CDN + WAF Dashboard\\n\\nOperational visibility for the Azure Front Door sandbox.\"\n      },\n      \"name\": \"header\"\n    },\n    {\n      \"type\": 9,\n      \"content\": {\n        \"version\": \"KqlParameterItem/1.0\",\n        \"parameters\": [\n          {\n            \"name\": \"TimeRange\",\n            \"type\": 4,\n            \"isRequired\": true,\n            \"value\": {\n              \"durationMs\": 3600000\n            },\n            \"typeSettings\": {\n              \"selectableValues\": [\n                { \"durationMs\": 300000 },\n                { \"durationMs\": 900000 },\n                { \"durationMs\": 1800000 },\n                { \"durationMs\": 3600000 },\n                { \"durationMs\": 14400000 },\n                { \"durationMs\": 43200000 },\n                { \"durationMs\": 86400000 }\n              ]\n            }\n          }\n        ]\n      },\n      \"name\": \"parameters\"\n    },\n    {\n      \"type\": 1,\n      \"content\": {\n        \"json\": \"## Traffic Overview\"\n      },\n      \"name\": \"section-traffic\"\n    },\n    {\n      \"type\": 3,\n      \"content\": {\n        \"version\": \"KqlItem/1.0\",\n        \"query\": \"AzureDiagnostics\\n| where Category == \\\"FrontDoorAccessLog\\\"\\n| where TimeGenerated {TimeRange}\\n| summarize RequestCount = count() by bin(TimeGenerated, 5m)\\n| render timechart\",\n        \"size\": 0,\n        \"title\": \"Requests Over Time\",\n        \"queryType\": 0,\n        \"visualization\": \"timechart\"\n      },\n      \"name\": \"requests-over-time\"\n    },\n    {\n      \"type\": 3,\n      \"content\": {\n        \"version\": \"KqlItem/1.0\",\n        \"query\": \"AzureDiagnostics\\n| where Category == \\\"FrontDoorAccessLog\\\"\\n| where TimeGenerated {TimeRange}\\n| summarize Count = count() by httpStatusCode_s\\n| render piechart\",\n        \"size\": 1,\n        \"title\": \"Response Status Codes\",\n        \"queryType\": 0,\n        \"visualization\": \"piechart\"\n      },\n      \"name\": \"status-codes\"\n    },\n    {\n      \"type\": 1,\n      \"content\": {\n        \"json\": \"## Cache Performance\"\n      },\n      \"name\": \"section-cache\"\n    },\n    {\n      \"type\": 3,\n      \"content\": {\n        \"version\": \"KqlItem/1.0\",\n        \"query\": \"AzureDiagnostics\\n| where Category == \\\"FrontDoorAccessLog\\\"\\n| where TimeGenerated {TimeRange}\\n| summarize Count = count() by cacheStatus_s\\n| render piechart\",\n        \"size\": 1,\n        \"title\": \"Cache Hit/Miss Ratio\",\n        \"queryType\": 0,\n        \"visualization\": \"piechart\"\n      },\n      \"name\": \"cache-hitrate\"\n    },\n    {\n      \"type\": 3,\n      \"content\": {\n        \"version\": \"KqlItem/1.0\",\n        \"query\": \"AzureDiagnostics\\n| where Category == \\\"FrontDoorAccessLog\\\"\\n| where TimeGenerated {TimeRange}\\n| summarize AvgLatency = avg(timeTaken_d), P95 = percentile(timeTaken_d, 95) by bin(TimeGenerated, 5m)\\n| render timechart\",\n        \"size\": 0,\n        \"title\": \"Latency (Avg & P95)\",\n        \"queryType\": 0,\n        \"visualization\": \"timechart\"\n      },\n      \"name\": \"latency\"\n    },\n    {\n      \"type\": 1,\n      \"content\": {\n        \"json\": \"## WAF / Security\"\n      },\n      \"name\": \"section-waf\"\n    },\n    {\n      \"type\": 3,\n      \"content\": {\n        \"version\": \"KqlItem/1.0\",\n        \"query\": \"AzureDiagnostics\\n| where Category == \\\"FrontDoorWebApplicationFirewallLog\\\"\\n| where TimeGenerated {TimeRange}\\n| summarize Count = count() by action_s, ruleName_s\\n| sort by Count desc\",\n        \"size\": 0,\n        \"title\": \"WAF Actions by Rule\",\n        \"queryType\": 0,\n        \"visualization\": \"table\"\n      },\n      \"name\": \"waf-actions\"\n    },\n    {\n      \"type\": 3,\n      \"content\": {\n        \"version\": \"KqlItem/1.0\",\n        \"query\": \"AzureDiagnostics\\n| where Category == \\\"FrontDoorWebApplicationFirewallLog\\\"\\n| where action_s == \\\"Block\\\"\\n| where TimeGenerated {TimeRange}\\n| summarize Blocks = count() by bin(TimeGenerated, 5m)\\n| render timechart\",\n        \"size\": 0,\n        \"title\": \"WAF Blocks Over Time\",\n        \"queryType\": 0,\n        \"visualization\": \"timechart\"\n      },\n      \"name\": \"waf-blocks-time\"\n    },\n    {\n      \"type\": 1,\n      \"content\": {\n        \"json\": \"## Origin Health\"\n      },\n      \"name\": \"section-health\"\n    },\n    {\n      \"type\": 3,\n      \"content\": {\n        \"version\": \"KqlItem/1.0\",\n        \"query\": \"AzureDiagnostics\\n| where Category == \\\"FrontDoorHealthProbeLog\\\"\\n| where TimeGenerated {TimeRange}\\n| summarize Count = count() by healthProbeStatus_s, originName_s\\n| render barchart\",\n        \"size\": 0,\n        \"title\": \"Health Probe Results by Origin\",\n        \"queryType\": 0,\n        \"visualization\": \"barchart\"\n      },\n      \"name\": \"health-probes\"\n    }\n  ],\n  \"$schema\": \"https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json\"\n}\n"
           },
           "resources": [
             {
@@ -1723,55 +1863,59 @@
   "outputs": {
     "frontDoorEndpoint": {
       "type": "string",
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'frontdoor'), '2022-09-01').outputs.endpointHostName.value]"
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'frontdoor'), '2025-04-01').outputs.endpointHostName.value]"
     },
     "frontDoorProfileName": {
       "type": "string",
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'frontdoor'), '2022-09-01').outputs.profileName.value]"
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'frontdoor'), '2025-04-01').outputs.profileName.value]"
     },
     "originAHostname": {
       "type": "string",
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'origin-a'), '2022-09-01').outputs.hostname.value]"
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'origin-a'), '2025-04-01').outputs.hostname.value]"
     },
     "originBHostname": {
       "type": "string",
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'origin-b'), '2022-09-01').outputs.hostname.value]"
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'origin-b'), '2025-04-01').outputs.hostname.value]"
     },
     "originAAppName": {
       "type": "string",
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'origin-a'), '2022-09-01').outputs.appName.value]"
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'origin-a'), '2025-04-01').outputs.appName.value]"
     },
     "originBAppName": {
       "type": "string",
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'origin-b'), '2022-09-01').outputs.appName.value]"
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'origin-b'), '2025-04-01').outputs.appName.value]"
     },
     "originAEnvName": {
       "type": "string",
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'origin-a'), '2022-09-01').outputs.environmentName.value]"
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'origin-a'), '2025-04-01').outputs.environmentName.value]"
     },
     "originBEnvName": {
       "type": "string",
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'origin-b'), '2022-09-01').outputs.environmentName.value]"
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'origin-b'), '2025-04-01').outputs.environmentName.value]"
     },
     "logAnalyticsWorkspace": {
       "type": "string",
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'log-analytics'), '2022-09-01').outputs.workspaceName.value]"
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'log-analytics'), '2025-04-01').outputs.workspaceName.value]"
     },
     "wafPolicyName": {
       "type": "string",
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'waf-policy'), '2022-09-01').outputs.wafPolicyName.value]"
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'waf-policy'), '2025-04-01').outputs.wafPolicyName.value]"
     },
     "customDomainConfig": {
       "type": "array",
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'frontdoor'), '2022-09-01').outputs.customDomainConfig.value]"
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'frontdoor'), '2025-04-01').outputs.customDomainConfig.value]"
+    },
+    "securityCopilotCapacity": {
+      "type": "string",
+      "value": "[if(and(variables('enableSecurityCopilot'), not(equals(reference(resourceId('Microsoft.Resources/deployments', 'security-copilot'), '2025-04-01'), null()))), reference(resourceId('Microsoft.Resources/deployments', 'security-copilot'), '2025-04-01').outputs.capacityName.value, 'not-deployed')]"
     },
     "AZURE_CONTAINER_REGISTRY_ENDPOINT": {
       "type": "string",
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'container-registry'), '2022-09-01').outputs.acrLoginServer.value]"
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'container-registry'), '2025-04-01').outputs.acrLoginServer.value]"
     },
     "AZURE_CONTAINER_REGISTRY_NAME": {
       "type": "string",
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'container-registry'), '2022-09-01').outputs.acrName.value]"
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'container-registry'), '2025-04-01').outputs.acrName.value]"
     }
   }
 }

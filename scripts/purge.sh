@@ -8,7 +8,14 @@
 set -euo pipefail
 
 PREFIX="${DEMO_PREFIX:-afdemo}"
-RG="${DEMO_RG:-rg-afd-demo}"
+
+# Resource group: explicit env var, then the active azd environment, then the default.
+RG="${AZURE_RESOURCE_GROUP:-${DEMO_RG:-}}"
+if [[ -z "$RG" ]] && command -v azd >/dev/null 2>&1; then
+  RG=$(azd env get-values 2>/dev/null | sed -n 's/^AZURE_RESOURCE_GROUP="\(.*\)"$/\1/p')
+fi
+RG="${RG:-rg-afd-demo}"
+
 PURGE_PATH="${1:-/static/version.json}"
 
 PROFILE_NAME="${PREFIX}-afd"

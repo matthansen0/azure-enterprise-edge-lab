@@ -1,20 +1,29 @@
 #!/usr/bin/env bash
 # ---------------------------------------------------------------------------
 # toggle-failover.sh — Enable/disable an origin to exercise failover
-# Usage: bash scripts/toggle-failover.sh disable origin-b
-#        bash scripts/toggle-failover.sh enable  origin-b
+# Usage: bash scripts/toggle-failover.sh disable origin-a
+#        bash scripts/toggle-failover.sh enable  origin-a
+#
+# origin-a is priority 1 (primary); disabling it forces Front Door onto origin-b.
 #
 # Override defaults: DEMO_PREFIX=afdemo DEMO_RG=rg-afd-demo bash scripts/toggle-failover.sh ...
 # ---------------------------------------------------------------------------
 set -euo pipefail
 
 PREFIX="${DEMO_PREFIX:-afdemo}"
-RG="${DEMO_RG:-rg-afd-demo}"
+
+# Resource group: explicit env var, then the active azd environment, then the default.
+RG="${AZURE_RESOURCE_GROUP:-${DEMO_RG:-}}"
+if [[ -z "$RG" ]] && command -v azd >/dev/null 2>&1; then
+  RG=$(azd env get-values 2>/dev/null | sed -n 's/^AZURE_RESOURCE_GROUP="\(.*\)"$/\1/p')
+fi
+RG="${RG:-rg-afd-demo}"
+
 PROFILE_NAME="${PREFIX}-afd"
 ORIGIN_GROUP="default-origin-group"
 
 ACTION="${1:-disable}"    # enable | disable
-ORIGIN="${2:-origin-b}"   # origin-a | origin-b
+ORIGIN="${2:-origin-a}"   # origin-a | origin-b
 
 if [ "$ACTION" = "disable" ]; then
   STATE="Disabled"

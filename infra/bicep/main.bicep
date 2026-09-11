@@ -22,8 +22,11 @@ param rateLimitThreshold int = 100
 @description('Log retention days')
 param logRetentionDays int = 90
 
-@description('Deploy Security Copilot pay-as-you-go capacity (~$4/hr per SCU)')
-param deploySecurityCopilot bool = false
+@description('Deploy Security Copilot pay-as-you-go capacity (~$4/hr per SCU). Set to "true" to enable.')
+// String rather than bool: azd substitutes main.parameters.json values as strings, and ARM will not coerce them.
+param deploySecurityCopilot string = 'false'
+
+var enableSecurityCopilot = toLower(deploySecurityCopilot) == 'true'
 
 @description('Tags applied to all resources')
 param tags object = {
@@ -159,7 +162,7 @@ module monitorWorkbooks 'modules/monitor-workbooks.bicep' = {
 // ---------------------------------------------------------------------------
 // Microsoft Security Copilot — Pay-as-you-go SCU Capacity
 // ---------------------------------------------------------------------------
-module securityCopilot 'modules/security-copilot.bicep' = if (deploySecurityCopilot) {
+module securityCopilot 'modules/security-copilot.bicep' = if (enableSecurityCopilot) {
   name: 'security-copilot'
   params: {
     prefix: prefix
@@ -197,7 +200,7 @@ output logAnalyticsWorkspace string = logAnalytics.outputs.workspaceName
 output wafPolicyName string = wafPolicy.outputs.wafPolicyName
 output customDomainConfig array = frontDoor.outputs.customDomainConfig
 #disable-next-line outputs-should-not-contain-secrets
-output securityCopilotCapacity string = deploySecurityCopilot && securityCopilot != null ? securityCopilot!.outputs.capacityName : 'not-deployed'
+output securityCopilotCapacity string = enableSecurityCopilot && securityCopilot != null ? securityCopilot!.outputs.capacityName : 'not-deployed'
 
 // azd-required outputs
 output AZURE_CONTAINER_REGISTRY_ENDPOINT string = containerRegistry.outputs.acrLoginServer

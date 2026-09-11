@@ -19,6 +19,9 @@
     },
     "logRetentionDays": {
       "value": 90
+    },
+    "deploySecurityCopilot": {
+      "value": "${DEPLOY_SECURITY_COPILOT=false}"
     }
   }
 }

@@ -1,6 +1,10 @@
 const { describe, it } = require("node:test");
 const assert = require("node:assert/strict");
 const http = require("node:http");
+
+process.env.ORIGIN_LABEL = "test-origin";
+process.env.AZURE_REGION = "test-region";
+
 const app = require("../server");
 
 function request(path) {
@@ -24,6 +28,8 @@ describe("API Endpoints", () => {
     const res = await request("/api/health");
     assert.equal(res.status, 200);
     assert.equal(res.body.status, "healthy");
+    assert.equal(res.body.origin, "test-origin");
+    assert.equal(res.body.region, "test-region");
     assert.ok(res.body.timestamp);
     assert.equal(res.headers["cache-control"], "no-store");
   });

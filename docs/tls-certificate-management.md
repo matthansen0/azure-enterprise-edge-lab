@@ -74,7 +74,7 @@ Each custom domain (www, api, cdn, portal) can have:
 
 ## Origin TLS
 
-- Origins (App Service) use platform-managed certificates (*.azurewebsites.net)
+- Origins (Azure Container Apps) use platform-managed certificates (`*.<region>.azurecontainerapps.io`)
 - All origin communication enforced as HTTPS-only
 - Certificate name check enabled (enforceCertificateNameCheck: true)
 - Minimum TLS 1.2 enforced on origins

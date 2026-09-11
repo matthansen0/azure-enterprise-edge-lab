@@ -1,0 +1,14 @@
+{
+  "analyzers": {
+    "core": {
+      "enabled": true,
+      "rules": {
+        "use-recent-api-versions": {
+          "level": "warning",
+          "maxAgeInDays": 730,
+          "gracePeriodInDays": 90
+        }
+      }
+    }
+  }
+}

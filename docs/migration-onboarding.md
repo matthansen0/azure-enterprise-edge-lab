@@ -48,7 +48,7 @@ This document outlines the phased approach for migrating from an existing CDN/WA
    - Enable managed rule sets
 
 3. **Configure origins**
-   - Deploy application code to both origin App Services
+   - Deploy application code to both origin Container Apps
    - Validate health probes are passing
    - Confirm origin access restrictions (Front Door service tag only)
 
