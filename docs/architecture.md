@@ -4,6 +4,8 @@
 
 ![Enterprise Edge Architecture](media/enterprise-edge-diagram1.png)
 
+Explore the [interactive architecture diagram](https://matthansen0.github.io/azure-front-door-sandbox/).
+
 ### Reading the Diagram
 
 | Arrow Style | Meaning |
