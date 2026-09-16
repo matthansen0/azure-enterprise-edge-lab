@@ -1,0 +1,263 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Azure Enterprise Edge Lab",
+    "locale": "en",
+    "output": "docs/architecture/azure-front-door-sandbox.architecture.html",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "request-path",
+        "label": "Protected request path",
+        "focus": ["clients", "front_door", "waf", "origin_a"],
+        "note": "Follow public HTTPS through the global endpoint, WAF inspection, routing rules, and the primary Container App."
+      },
+      {
+        "id": "regional-failover",
+        "label": "Regional failover",
+        "focus": ["front_door", "waf", "origin_a", "origin_b"],
+        "note": "Trace health-probe decisions from the active East US 2 origin to the passive West US 2 origin."
+      },
+      {
+        "id": "container-delivery",
+        "label": "Container delivery",
+        "focus": ["container_registry", "origin_a", "origin_b"],
+        "note": "See how one registry image is pulled by both regional Container Apps."
+      },
+      {
+        "id": "security-evidence",
+        "label": "Security evidence",
+        "focus": ["front_door", "waf", "log_analytics", "sentinel", "workbook"],
+        "note": "Edge, WAF, probe, and origin diagnostics converge in Log Analytics for detection and operations."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "clients",
+      "type": "external",
+      "label": "Internet Clients",
+      "sublabel": "browser · REST clients",
+      "tag": "CLIENTS",
+      "pos": [30, 340],
+      "size": [150, 70]
+    },
+    {
+      "id": "front_door",
+      "type": "cloud",
+      "label": "Azure Front Door",
+      "sublabel": "Premium · global anycast",
+      "tag": "EDGE",
+      "pos": [220, 340],
+      "size": [180, 70]
+    },
+    {
+      "id": "waf",
+      "type": "security",
+      "label": "WAF + Rules Engine",
+      "sublabel": "Prevention · cache policy",
+      "tag": "POLICY",
+      "pos": [450, 340],
+      "size": [180, 70]
+    },
+    {
+      "id": "container_registry",
+      "type": "cloud",
+      "label": "Container Registry",
+      "sublabel": "shared application image",
+      "tag": "DELIVERY",
+      "pos": [450, 90],
+      "size": [180, 70]
+    },
+    {
+      "id": "origin_a",
+      "type": "backend",
+      "label": "Origin A · East US 2",
+      "sublabel": "Container App · priority 1",
+      "tag": "ACTIVE",
+      "pos": [700, 230],
+      "size": [180, 70]
+    },
+    {
+      "id": "origin_b",
+      "type": "backend",
+      "label": "Origin B · West US 2",
+      "sublabel": "Container App · priority 2",
+      "tag": "PASSIVE",
+      "pos": [700, 480],
+      "size": [180, 70]
+    },
+    {
+      "id": "log_analytics",
+      "type": "database",
+      "label": "Log Analytics",
+      "sublabel": "edge + origin diagnostics",
+      "tag": "EVIDENCE",
+      "pos": [970, 340],
+      "size": [180, 70]
+    },
+    {
+      "id": "sentinel",
+      "type": "security",
+      "label": "Microsoft Sentinel",
+      "sublabel": "detections + incidents",
+      "tag": "SIEM",
+      "pos": [1210, 230],
+      "size": [180, 70]
+    },
+    {
+      "id": "workbook",
+      "type": "cloud",
+      "label": "Azure Workbook",
+      "sublabel": "traffic + cache + health",
+      "tag": "OPERATIONS",
+      "pos": [1210, 480],
+      "size": [180, 70]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "security-group",
+      "label": "Azure subscription · sandbox resource group",
+      "wraps": ["front_door", "waf", "container_registry", "origin_a", "origin_b", "log_analytics", "sentinel", "workbook"],
+      "pad": 28
+    },
+    {
+      "kind": "security-group",
+      "label": "Global edge controls",
+      "wraps": ["front_door", "waf"],
+      "pad": 14
+    },
+    {
+      "kind": "security-group",
+      "label": "Dual-region origin group",
+      "wraps": ["origin_a", "origin_b"],
+      "pad": 18
+    },
+    {
+      "kind": "security-group",
+      "label": "Security and operations",
+      "wraps": ["log_analytics", "sentinel", "workbook"],
+      "pad": 18
+    }
+  ],
+  "connections": [
+    {
+      "id": "public_https",
+      "from": "clients",
+      "to": "front_door",
+      "label": "HTTPS :443",
+      "labelAt": [200, 424],
+      "variant": "emphasis"
+    },
+    {
+      "id": "edge_inspection",
+      "from": "front_door",
+      "to": "waf",
+      "label": "WAF inspection + cache",
+      "labelAt": [425, 424],
+      "variant": "security"
+    },
+    {
+      "id": "primary_origin",
+      "from": "waf",
+      "to": "origin_a",
+      "label": "origin HTTPS + probes",
+      "labelAt": [660, 254],
+      "variant": "emphasis"
+    },
+    {
+      "id": "failover_origin",
+      "from": "waf",
+      "to": "origin_b",
+      "label": "automatic failover",
+      "labelAt": [675, 504],
+      "variant": "dashed"
+    },
+    {
+      "id": "primary_image_pull",
+      "from": "container_registry",
+      "to": "origin_a",
+      "label": "image pull",
+      "labelAt": [660, 205],
+      "variant": "dashed"
+    },
+    {
+      "id": "secondary_image_pull",
+      "from": "container_registry",
+      "to": "origin_b",
+      "label": "image pull",
+      "labelAt": [640, 455],
+      "variant": "dashed"
+    },
+    {
+      "id": "primary_diagnostics",
+      "from": "origin_a",
+      "to": "log_analytics",
+      "label": "access + probe logs",
+      "labelAt": [925, 254],
+      "variant": "dashed"
+    },
+    {
+      "id": "secondary_diagnostics",
+      "from": "origin_b",
+      "to": "log_analytics",
+      "label": "origin diagnostics",
+      "labelAt": [925, 504],
+      "variant": "dashed"
+    },
+    {
+      "id": "edge_diagnostics",
+      "from": "front_door",
+      "to": "log_analytics",
+      "label": "Front Door + WAF diagnostics",
+      "labelAt": [690, 674],
+      "variant": "dashed"
+    },
+    {
+      "id": "security_analytics",
+      "from": "log_analytics",
+      "to": "sentinel",
+      "label": "analytics + incidents",
+      "labelAt": [1180, 254],
+      "variant": "security"
+    },
+    {
+      "id": "operational_views",
+      "from": "log_analytics",
+      "to": "workbook",
+      "label": "KQL + metrics",
+      "labelAt": [1180, 504]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Protected Edge Request",
+      "items": [
+        "Front Door terminates HTTPS on the global anycast edge",
+        "WAF Prevention applies managed and safe custom rules",
+        "Rules cache static assets while dynamic health endpoints remain fresh"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Regional Resilience",
+      "items": [
+        "East US 2 serves as the priority 1 active origin",
+        "Health probes shift requests to West US 2 automatically",
+        "Both Container Apps pull the same image from the shared registry"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Evidence + Operations",
+      "items": [
+        "Front Door, WAF, probe, and origin diagnostics feed Log Analytics",
+        "Microsoft Sentinel consumes security evidence for detection and triage",
+        "Azure Workbook exposes traffic, cache, latency, WAF, and origin health"
+      ]
+    }
+  ]
+}
