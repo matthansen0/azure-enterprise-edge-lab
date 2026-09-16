@@ -8,7 +8,7 @@
 
 ![Enterprise Edge Architecture](docs/media/enterprise-edge-diagram1.png)
 
-Explore the [interactive architecture diagram](https://matthansen0.github.io/azure-front-door-sandbox/).
+Explore the [interactive architecture diagram](https://matthansen0.github.io/azure-enterprise-edge-lab/).
 
 See [docs/architecture.md](docs/architecture.md) for component details, caching strategy, WAF rules, and more.
 
