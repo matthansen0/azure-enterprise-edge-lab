@@ -13,6 +13,8 @@
 - Use the portal to explain Front Door, WAF, origins, rules, diagnostics, and workbooks.
 - Expect Front Door configuration changes to take 5-15 minutes and diagnostic logs to take several minutes to appear.
 
+> Screenshots are cropped to the relevant task area. Red callouts identify the action or result; account, tenant, subscription, and unrelated-resource details are excluded.
+
 ## Before the Session
 
 - [ ] Confirm the environment is already deployed and both origins are healthy.
@@ -42,6 +44,8 @@ Start with the architecture diagram, then connect each component to a deployed p
 
 **Expected result**: The audience can map the public endpoint to Front Door, its WAF policy, and the two regional origins.
 
+![The default Front Door route and origin group highlighted with red callouts.](media/portal/front-door-route.png)
+
 ---
 
 ### A2. Live CDN Delivery
@@ -55,6 +59,10 @@ Start with the architecture diagram, then connect each component to a deployed p
 6. Under **API Endpoints**, select **Call /api/health**, **Call /api/time**, and **Call /api/headers**.
 
 **Expected result**: Static controls display the Front Door cache status and age. API controls return HTTP 200 and identify the serving Azure region without leaving the page.
+
+![The website version asset control and live cache result highlighted with red callouts.](media/site-cache-demo.png)
+
+![The website health API control and serving region highlighted with red callouts.](media/site-api-health-demo.png)
 
 > To show the full health or header payload without a terminal, open `/api/health` or `/api/headers` on the same Front Door hostname in a browser tab.
 
@@ -71,6 +79,8 @@ Start with the architecture diagram, then connect each component to a deployed p
 
 **Expected result**: The portal rule set explains why static assets and API responses follow different cache policies, and the website demonstrates the API policy live.
 
+![The static asset and API cache rules highlighted with red callouts in the Azure portal.](media/portal/front-door-cache-rules.png)
+
 ---
 
 ### A4. Cache Purge Exercise
@@ -81,6 +91,8 @@ Start with the architecture diagram, then connect each component to a deployed p
 3. Select `afdemo-endpoint`, enter `/static/version.json` as the content path, and submit the purge.
 4. Wait for the portal notification that the purge was accepted, then return to the website.
 5. Select **Fetch version.json** again until the edge reports `TCP_MISS` or an age of `0`.
+
+![The Front Door Purge cache action highlighted with a red callout in the Azure portal.](media/portal/front-door-overview.png)
 
 **Expected result**: The same website control changes from a warm-cache result to a cold-cache result after a portal-driven purge.
 
@@ -152,6 +164,8 @@ Keep deployment as an architecture talking point rather than a live coding exerc
 6. Repeat each website request a few times to create a visible allow/block pattern for the security workbook.
 
 **Expected result**: Two adjacent website controls produce an allowed request and a blocked request, and the portal shows the exact rule responsible.
+
+![The website WAF trigger and normal request with live 403 and 200 results highlighted with red callouts.](media/site-waf-demo.png)
 
 ---
 
