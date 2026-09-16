@@ -14,6 +14,8 @@
 - Expect Front Door configuration changes to take 5-15 minutes and diagnostic logs to take several minutes to appear.
 
 > Screenshots are cropped to the relevant task area. Red callouts identify the action or result; account, tenant, subscription, and unrelated-resource details are excluded.
+>
+> Stable controls and configuration are pictured below. Workbooks, logs, Sentinel investigations, and optional Security Copilot responses are demonstrated live because their values are session-specific and can contain source IPs or incident details.
 
 ## Before the Session
 
@@ -112,6 +114,8 @@ Keep deployment as an architecture talking point rather than a live coding exerc
 
 **Expected result**: The audience sees the deployment boundary and revision history without changing code during the demo.
 
+![The active primary Container App revision and Running state highlighted with a red callout.](media/portal/container-app-active-revision.png)
+
 ---
 
 ### A6. TLS & Certificate Management
@@ -151,6 +155,10 @@ Keep deployment as an architecture talking point rather than a live coding exerc
 
 **Expected result**: The policy is globally associated with the demo endpoint and can block matching requests before they reach either origin.
 
+![The Front Door domain-level WAF association highlighted with a red callout.](media/portal/front-door-security-policy.png)
+
+![The Default Rule Set 2.1 and Bot Manager 1.1 managed rule sets highlighted with numbered callouts.](media/portal/waf-managed-rules.png)
+
 ---
 
 ### B2. Live WAF Block From the Website
@@ -179,6 +187,8 @@ Keep deployment as an architecture talking point rather than a live coding exerc
 
 **Expected result**: The audience sees the additional controls in the portal without interrupting the visual demo with terminal requests.
 
+![The header, browser-query, rate-limit, and bot custom rules highlighted in the WAF policy.](media/portal/waf-custom-rules.png)
+
 ---
 
 ### B4. Rate Limiting Exercise
@@ -198,18 +208,20 @@ Keep deployment as an architecture talking point rather than a live coding exerc
 **Steps**:
 1. On the website, select **Call /api/health** and note `eastus2`, the primary region.
 2. In `afdemo-afd`, open **Origin groups** > `default-origin-group` and show `origin-a` at priority 1 and `origin-b` at priority 2.
-3. Open the `afdemo-origin-a` Container App in a separate portal tab.
-4. Select **Revisions and replicas**, record the active revision name, select that revision, and choose **Deactivate**. Confirm the action.
+3. Open the `afdemo-origin-a` Container App in a separate portal tab and confirm its status is **Running**.
+4. On **Overview**, select **Stop** and confirm the action.
 5. Return to the website and select **Call /api/health** about every 30 seconds.
 6. After Front Door marks the primary unhealthy, confirm that requests return HTTP 200 from `westus2`.
-7. Immediately return to `afdemo-origin-a`, select the same revision, and choose **Activate**.
+7. Immediately return to `afdemo-origin-a`, select **Start**, and confirm the action.
 8. Continue checking **Call /api/health** until `eastus2` is serving again, then verify both origins are enabled in `default-origin-group`.
+
+![The primary and failover origins with priorities 1 and 2 highlighted in the origin group.](media/portal/front-door-origin-priority.png)
 
 **Expected result**: The public hostname stays the same while the displayed serving region changes from `eastus2` to `westus2`, then returns to `eastus2` after recovery.
 
-> Deactivating a revision stops all of its replicas. With 30-second probes and three successful samples required, detection usually takes about 90-120 seconds. A few requests can fail while the edge converges, so narrate retries as health-probe detection rather than an instant switch.
+> Stopping the primary Container App makes its health endpoint unavailable. With 30-second probes and three successful samples required, detection usually takes about 90-120 seconds. A few requests can fail while the edge converges, so narrate retries as health-probe detection rather than an instant switch.
 >
-> Do not disable `origin-a` in the Front Door origin editor for the live path. That is a configuration change and usually takes 5-15 minutes to propagate. Always reactivate the primary revision before leaving this section.
+> Do not disable `origin-a` in the Front Door origin editor for the live path. That is a configuration change and usually takes 5-15 minutes to propagate. Always restart the primary Container App before leaving this section.
 
 ---
 
