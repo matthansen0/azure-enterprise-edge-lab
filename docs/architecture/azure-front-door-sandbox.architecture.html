@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Azure Enterprise Edge Lab Architecture</title>
+  <style>
+    :root { color-scheme: light; --ink: #172033; --muted: #526074; --line: #b9c5d6; --blue: #dbeafe; --green: #dcfce7; --amber: #fef3c7; --purple: #ede9fe; --pink: #fce7f3; }
+    * { box-sizing: border-box; }
+    body { margin: 0; color: var(--ink); font: 16px/1.5 ui-sans-serif, system-ui, -apple-system, sans-serif; background: #f5f7fb; }
+    header { padding: 2.5rem clamp(1rem, 4vw, 4rem) 1.5rem; background: linear-gradient(135deg, #102a43, #1f4f75); color: white; }
+    header p { max-width: 70rem; margin: .5rem 0 0; color: #d9e7f5; }
+    main { max-width: 1400px; margin: 0 auto; padding: 1.25rem; }
+    .toolbar { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; margin-bottom: .75rem; }
+    button { border: 1px solid #a8b6c8; border-radius: 6px; background: white; color: var(--ink); padding: .45rem .7rem; cursor: pointer; }
+    button:hover, button:focus-visible { background: #e8f1f8; outline: 2px solid #4a9eed; outline-offset: 1px; }
+    .hint { color: var(--muted); margin-left: .25rem; }
+    .diagram-shell { overflow: hidden; border: 1px solid #ccd5e2; border-radius: 8px; background: white; box-shadow: 0 8px 24px #17203312; }
+    svg { display: block; width: 100%; height: min(72vh, 760px); min-height: 480px; touch-action: none; cursor: grab; }
+    svg.dragging { cursor: grabbing; }
+    .zone { stroke: #8090a4; stroke-width: 2; stroke-dasharray: 8 6; }
+    .node { stroke: #34445a; stroke-width: 2; cursor: pointer; transition: filter .15s; }
+    .node:hover, .node:focus { filter: drop-shadow(0 3px 3px #17203344); stroke-width: 3; outline: none; }
+    text { fill: var(--ink); pointer-events: none; }
+    .title { font-size: 26px; font-weight: 700; }
+    .zone-label { font-size: 19px; font-weight: 700; }
+    .node-label { font-size: 17px; font-weight: 650; }
+    .small { font-size: 14px; fill: var(--muted); }
+    .live { stroke: #1f2937; stroke-width: 3; fill: none; marker-end: url(#arrow); }
+    .async { stroke: #718096; stroke-width: 2.5; stroke-dasharray: 9 7; fill: none; marker-end: url(#arrow-muted); }
+    .panel { margin-top: 1rem; padding: 1rem 1.25rem; border-left: 4px solid #4a9eed; background: white; min-height: 5rem; }
+    .panel h2 { margin: 0 0 .25rem; font-size: 1.1rem; }
+    .panel p { margin: 0; color: var(--muted); }
+    @media (max-width: 700px) { header { padding-top: 1.5rem; } svg { min-height: 420px; } .hint { width: 100%; margin-left: 0; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Azure Enterprise Edge Lab</h1>
+    <p>Interactive architecture for Front Door Premium, dual-region Container Apps failover, WAF, caching, and security observability.</p>
+  </header>
+  <main>
+    <div class="toolbar" aria-label="Diagram controls">
+      <button type="button" id="zoom-in">Zoom in</button>
+      <button type="button" id="zoom-out">Zoom out</button>
+      <button type="button" id="reset">Reset view</button>
+      <span class="hint">Click a component for details. Drag to pan.</span>
+    </div>
+    <div class="diagram-shell">
+      <svg id="diagram" viewBox="0 0 1200 760" role="img" aria-labelledby="diagram-title diagram-desc">
+        <title id="diagram-title">Azure Enterprise Edge Lab architecture</title>
+        <desc id="diagram-desc">Client traffic enters Azure Front Door, passes through WAF and caching rules, reaches active or passive regional Container Apps, and sends diagnostics to Log Analytics, Sentinel, and an Azure Workbook.</desc>
+        <defs>
+          <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#1f2937"/></marker>
+          <marker id="arrow-muted" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#718096"/></marker>
+        </defs>
+        <g id="viewport">
+          <text x="600" y="42" text-anchor="middle" class="title">Enterprise Edge and Security Platform</text>
+          <rect x="30" y="180" width="150" height="90" rx="18" class="node" fill="var(--amber)" data-title="Client" data-detail="Internet clients send HTTPS requests to the Front Door endpoint." tabindex="0"/>
+          <text x="105" y="218" text-anchor="middle" class="node-label">Client</text><text x="105" y="244" text-anchor="middle" class="small">Internet</text>
+          <rect x="220" y="90" width="360" height="350" rx="24" class="zone" fill="var(--blue)"/>
+          <text x="400" y="122" text-anchor="middle" class="zone-label">Azure Front Door Premium</text>
+          <rect x="270" y="155" width="260" height="65" rx="14" class="node" fill="#a5d8ff" data-title="Front Door endpoint" data-detail="The global anycast endpoint terminates HTTPS and routes requests to the healthiest origin." tabindex="0"/>
+          <text x="400" y="184" text-anchor="middle" class="node-label">Endpoint</text><text x="400" y="207" text-anchor="middle" class="small">*.azurefd.net</text>
+          <rect x="270" y="255" width="260" height="65" rx="14" class="node" fill="#ffc9c9" data-title="WAF policy" data-detail="Prevention mode applies managed OWASP and Bot Manager rules plus safe demo custom rules." tabindex="0"/>
+          <text x="400" y="284" text-anchor="middle" class="node-label">WAF Policy</text><text x="400" y="307" text-anchor="middle" class="small">OWASP + Bot Manager</text>
+          <rect x="270" y="355" width="260" height="55" rx="14" class="node" fill="#d0bfff" data-title="Rules engine" data-detail="Caching rules, HTTPS redirect, and routing determine how each request is handled." tabindex="0"/>
+          <text x="400" y="388" text-anchor="middle" class="node-label">Rules + Cache</text>
+          <path d="M180 225 L270 188" class="live"/><text x="215" y="192" class="small">HTTPS</text>
+          <path d="M400 220 L400 255" class="live"/><path d="M400 320 L400 355" class="live"/>
+          <rect x="650" y="90" width="500" height="350" rx="24" class="zone" fill="var(--green)"/>
+          <text x="900" y="122" text-anchor="middle" class="zone-label">Origin Group: Active / Passive</text>
+          <rect x="690" y="165" width="190" height="110" rx="16" class="node" fill="#b2f2bb" data-title="Origin A: East US 2" data-detail="Primary Container App origin. Front Door assigns priority 1 and probes /api/health." tabindex="0"/>
+          <text x="785" y="200" text-anchor="middle" class="node-label">East US 2</text><text x="785" y="228" text-anchor="middle" class="small">Container App</text><text x="785" y="250" text-anchor="middle" class="small">Priority 1</text>
+          <rect x="920" y="165" width="190" height="110" rx="16" class="node" fill="var(--amber)" data-title="Origin B: West US 2" data-detail="Passive Container App origin. Front Door shifts traffic here when Origin A fails health probes." tabindex="0"/>
+          <text x="1015" y="200" text-anchor="middle" class="node-label">West US 2</text><text x="1015" y="228" text-anchor="middle" class="small">Container App</text><text x="1015" y="250" text-anchor="middle" class="small">Priority 2</text>
+          <rect x="810" y="340" width="180" height="60" rx="14" class="node" fill="#c3fae8" data-title="Azure Container Registry" data-detail="ACR stores the shared image deployed to both regional Container Apps." tabindex="0"/>
+          <text x="900" y="366" text-anchor="middle" class="node-label">Azure Container</text><text x="900" y="388" text-anchor="middle" class="small">Registry (ACR)</text>
+          <path d="M530 382 L690 220" class="live"/><text x="575" y="310" class="small">HTTPS</text>
+          <path d="M530 410 L920 410" class="async"/><text x="700" y="401" class="small">health-probe failover</text>
+          <path d="M900 340 L785 275 M900 340 L1015 275" class="async"/><text x="850" y="318" class="small">image pull</text>
+          <rect x="300" y="520" width="700" height="190" rx="24" class="zone" fill="var(--purple)"/>
+          <text x="650" y="552" text-anchor="middle" class="zone-label">Logging and Security</text>
+          <rect x="355" y="590" width="200" height="70" rx="14" class="node" fill="var(--pink)" data-title="Log Analytics" data-detail="Front Door access, WAF, health probe, and platform diagnostics stream here." tabindex="0"/>
+          <text x="455" y="620" text-anchor="middle" class="node-label">Log Analytics</text><text x="455" y="643" text-anchor="middle" class="small">Workspace</text>
+          <rect x="650" y="575" width="170" height="60" rx="14" class="node" fill="#ffc9c9" data-title="Microsoft Sentinel" data-detail="Security analytics and incident investigation consume Log Analytics data." tabindex="0"/>
+          <text x="735" y="610" text-anchor="middle" class="node-label">Microsoft Sentinel</text>
+          <rect x="650" y="660" width="170" height="60" rx="14" class="node" fill="#d0bfff" data-title="Azure Workbook" data-detail="Operational views show traffic, cache, WAF, latency, and origin health." tabindex="0"/>
+          <text x="735" y="696" text-anchor="middle" class="node-label">Azure Workbook</text>
+          <path d="M400 440 L455 590" class="async"/><text x="410" y="510" class="small">diagnostics</text>
+          <path d="M555 625 L650 605 M555 645 L650 690" class="live"/>
+        </g>
+      </svg>
+    </div>
+    <section class="panel" aria-live="polite"><h2 id="selected-title">Interactive architecture</h2><p id="selected-detail">Select a component to see how it participates in the request, failover, or observability flow.</p></section>
+  </main>
+  <script>
+    const svg = document.getElementById('diagram');
+    const viewport = document.getElementById('viewport');
+    const title = document.getElementById('selected-title');
+    const detail = document.getElementById('selected-detail');
+    let scale = 1;
+    let offsetX = 0;
+    let offsetY = 0;
+    let dragging = false;
+    let startX = 0;
+    let startY = 0;
+    function render() { viewport.setAttribute('transform', `translate(${offsetX} ${offsetY}) scale(${scale})`); }
+    function zoom(factor) { scale = Math.min(2.4, Math.max(.65, scale * factor)); render(); }
+    document.getElementById('zoom-in').addEventListener('click', () => zoom(1.2));
+    document.getElementById('zoom-out').addEventListener('click', () => zoom(.8));
+    document.getElementById('reset').addEventListener('click', () => { scale = 1; offsetX = 0; offsetY = 0; render(); });
+    function select(event) { const node = event.target.closest('.node'); if (!node) return; title.textContent = node.dataset.title; detail.textContent = node.dataset.detail; }
+    svg.addEventListener('click', select);
+    svg.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') select(event); });
+    svg.addEventListener('pointerdown', event => { if (event.target.closest('.node')) return; dragging = true; startX = event.clientX - offsetX; startY = event.clientY - offsetY; svg.classList.add('dragging'); svg.setPointerCapture(event.pointerId); });
+    svg.addEventListener('pointermove', event => { if (!dragging) return; offsetX = event.clientX - startX; offsetY = event.clientY - startY; render(); });
+    svg.addEventListener('pointerup', event => { dragging = false; svg.classList.remove('dragging'); svg.releasePointerCapture(event.pointerId); });
+    svg.addEventListener('wheel', event => { event.preventDefault(); zoom(event.deltaY < 0 ? 1.1 : .9); }, { passive: false });
+  </script>
+</body>
+</html>
