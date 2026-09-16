@@ -55,19 +55,14 @@ azd up                # Provisions Bicep infra + builds/deploys app to both orig
 
 ![Sandbox web page served through Azure Front Door](docs/media/demo-web-page.png)
 
-### 4. Run Sandbox Scripts
+### 4. Open the Visual Demo
 
-```bash
-# Purge a path and verify cache refresh
-bash scripts/purge.sh /static/version.json
+1. Open the Front Door endpoint URL returned by the deployment.
+2. In the Azure portal, open the deployed resource group (default: `rg-afd-demo`).
+3. Use the website controls to demonstrate caching, APIs, WAF blocking, and the active origin region.
+4. Use the portal to show Front Door, WAF, failover, diagnostics, and workbooks.
 
-# Generate traffic (benign load for rate-limit exercise)
-bash scripts/generate-traffic.sh
-
-# Toggle origin failover (disable primary, traffic shifts to origin-b)
-bash scripts/toggle-failover.sh disable origin-a
-bash scripts/toggle-failover.sh enable origin-a
-```
+Follow the [Visual Demo Lab Guide](docs/sandbox-playbook.md) for the complete audience-facing flow. The scripts under `scripts/` remain available for operator automation and troubleshooting, but are not required during the demo.
 
 ### 5. Destroy
 
@@ -77,14 +72,14 @@ azd down              # Deletes all provisioned resources
 
 ## Sandbox Playbook
 
-See [docs/sandbox-playbook.md](docs/sandbox-playbook.md) for a walkthrough with exact commands and expected output.
+See the [Visual Demo Lab Guide](docs/sandbox-playbook.md) for a portal-first walkthrough driven by the live website controls.
 
 ## Documentation Index
 
 | Document | Description |
 |----------|-------------|
 | [Architecture](docs/architecture.md) | System architecture and component map |
-| [Sandbox Playbook](docs/sandbox-playbook.md) | Walkthrough with commands and expected output |
+| [Visual Demo Lab Guide](docs/sandbox-playbook.md) | Portal-first walkthrough using the live website controls |
 | [Analytics KQL](docs/analytics-kql.md) | KQL queries for dashboards and ad-hoc analysis |
 | [Operating Model](docs/operating-model.md) | RACI, support tiers, SLA-backed incident flow |
 | [Migration & Onboarding](docs/migration-onboarding.md) | Phased migration, rollback, DNS cutover |

@@ -1,17 +1,29 @@
-# Sandbox Playbook
+# Visual Demo Lab Guide
 
-> Step-by-step walkthrough of the CDN + WAF sandbox.
-> Each section references exact commands and expected output.
+> Portal-first walkthrough of the Azure Front Door Premium sandbox.
+> The live site generates demo traffic and shows results; the Azure portal shows the configuration and telemetry behind it.
 
 ---
 
-## Pre-Activity Checklist
+## Demo Principles
 
-- [ ] Dev Container running with all tools installed
-- [ ] Logged in: `azd auth login --use-device-code` and `az login --use-device-code`
-- [ ] Subscription set: `az account set --subscription "<ID>"`
-- [ ] Environment deployed: `azd up`
-- [ ] Browser tabs open: Azure Portal (Front Door, WAF, Sentinel, Workbook), Front Door endpoint URL
+- Run the audience-facing demo entirely in a browser. Provisioning and teardown happen outside the presentation.
+- Send all live requests through the Front Door endpoint, never directly to a Container App origin.
+- Use the sandbox website for cache, API, origin-region, and safe WAF tests.
+- Use the portal to explain Front Door, WAF, origins, rules, diagnostics, and workbooks.
+- Expect Front Door configuration changes to take 5-15 minutes and diagnostic logs to take several minutes to appear.
+
+## Before the Session
+
+- [ ] Confirm the environment is already deployed and both origins are healthy.
+- [ ] In the Azure portal, open the lab resource group (default: `rg-afd-demo`).
+- [ ] Open the `afdemo-afd` Front Door profile and select its endpoint hostname to open the sandbox website in a second tab.
+- [ ] Open the `afdemowafpolicy` WAF policy in another tab.
+- [ ] Open the shared workbooks named `afdemo Front Door Traffic Analytics` and `afdemo WAF Security Analytics`.
+- [ ] Click a few website controls at least five minutes before the session so the workbooks have recent data.
+- [ ] Keep the interactive architecture diagram available for the opening overview.
+
+> Resource names use the default `afdemo` prefix. If the deployment used another prefix, select the equivalent resources in the same resource group.
 
 ---
 
@@ -19,119 +31,98 @@
 
 ### A1. Platform Overview & Architecture
 
-Walk through the architecture diagram, global anycast network, and multi-region origin failover design.
+Start with the architecture diagram, then connect each component to a deployed portal resource.
 
 **Steps**:
-1. Show [docs/architecture.md](architecture.md) diagram
-2. Open Azure Portal → Front Door profile → Overview blade
-3. Show the endpoint, origin group, and routing rules
+1. Show the [interactive architecture diagram](architecture/azure-front-door-sandbox.architecture.html).
+2. In the Azure portal, open **Resource groups** > `rg-afd-demo`.
+3. Point out the Front Door profile, WAF policy, two Container Apps in different regions, Log Analytics workspace, and workbooks.
+4. Open `afdemo-afd` and show the Premium SKU and endpoint on **Overview**.
+5. Open **Front Door manager** and expand `afdemo-endpoint` to show `default-route` and `default-origin-group`.
 
-**Expected Output**: Portal shows the Front Door profile with Premium SKU, endpoint, and configured origin group with two origins.
+**Expected result**: The audience can map the public endpoint to Front Door, its WAF policy, and the two regional origins.
 
 ---
 
 ### A2. Live CDN Delivery
 
 **Steps**:
-```bash
-# Fetch homepage through Front Door
-curl -sI "https://$(az afd endpoint show --resource-group rg-afd-demo \
-  --profile-name afdemo-afd --endpoint-name afdemo-endpoint \
-  --query hostName -o tsv)/" | head -20
-```
+1. Switch to the sandbox website opened from the Front Door endpoint.
+2. Call out the HTTPS lock and the **Global CDN Delivery** section.
+3. Under **Cacheable Assets**, select **Fetch version.json** twice.
+4. Compare the displayed `TCP_MISS`/`TCP_HIT` result and `Age` value. An already-warm cache may show a hit on both clicks.
+5. Select **Fetch style.css** and **Fetch logo.svg** to show the long-lived static assets.
+6. Under **API Endpoints**, select **Call /api/health**, **Call /api/time**, and **Call /api/headers**.
 
-**Expected Output**:
-- `HTTP/2 200`
-- `cache-control: public, max-age=300`
-- `x-cache: TCP_HIT` or `TCP_MISS` (depends on first request)
-- `strict-transport-security` header present
+**Expected result**: Static controls display the Front Door cache status and age. API controls return HTTP 200 and identify the serving Azure region without leaving the page.
 
-```bash
-# Show static asset caching
-curl -sI "https://$AFD_ENDPOINT/static/style.css" | grep -i "cache-control\|x-cache\|age"
-```
-
-**Expected Output**: `cache-control: public, max-age=31536000, immutable`, `x-cache: TCP_HIT`
-
-```bash
-# Show API no-cache behavior
-curl -s "https://$AFD_ENDPOINT/api/health" | jq .
-```
-
-**Expected Output**: JSON with `status: "healthy"`, `region`, `timestamp`
+> To show the full health or header payload without a terminal, open `/api/health` or `/api/headers` on the same Front Door hostname in a browser tab.
 
 ---
 
 ### A3. Cache Override & TTL Policies
 
 **Steps**:
-1. In Azure Portal → Front Door → Rules Engine → "CachingRules" rule set
-2. Show two rules: OverrideStaticTTL (overrides to 1 day) and RespectOriginApiCache (honors origin)
+1. In `afdemo-afd`, open **Rule sets** > `CachingRules`.
+2. Open `OverrideStaticTTL` and show that `/static/` paths honor the origin cache headers and enable compression.
+3. Open `RespectOriginApiCache` and show that `/api/` paths honor the origin while including the query string in the cache key.
+4. Return to the website and select **Call /api/cache-control**. The control calls `/api/cache-control?maxage=120` and displays the live response status and region.
+5. Optionally open that path in a browser tab to show the JSON `cacheControl` value and generated timestamp.
 
-```bash
-# API endpoint with configurable cache
-curl -sI "https://$AFD_ENDPOINT/api/cache-control?maxage=120" | grep -i cache-control
-# Expected: cache-control: public, max-age=120
-
-curl -sI "https://$AFD_ENDPOINT/api/cache-control?policy=no-store" | grep -i cache-control
-# Expected: cache-control: no-store
-```
+**Expected result**: The portal rule set explains why static assets and API responses follow different cache policies, and the website demonstrates the API policy live.
 
 ---
 
 ### A4. Cache Purge Exercise
 
 **Steps**:
-```bash
-bash scripts/purge.sh /static/version.json
-```
+1. On the website, select **Fetch version.json** until it displays `TCP_HIT`; note its age.
+2. In the Front Door profile, select **Purge cache**.
+3. Select `afdemo-endpoint`, enter `/static/version.json` as the content path, and submit the purge.
+4. Wait for the portal notification that the purge was accepted, then return to the website.
+5. Select **Fetch version.json** again until the edge reports `TCP_MISS` or an age of `0`.
 
-**Expected Output**:
-- Before purge: `age: <some value>`, `x-cache: TCP_HIT`
-- After purge: `age: 0` or missing, `x-cache: TCP_MISS`
+**Expected result**: The same website control changes from a warm-cache result to a cold-cache result after a portal-driven purge.
 
-```bash
-# Bulk purge
-az afd endpoint purge --resource-group rg-afd-demo \
-  --profile-name afdemo-afd --endpoint-name afdemo-endpoint \
-  --content-paths "/static/*"
-```
+> Purge completion can take several minutes across edge locations. Use `/static/version.json`, whose 30-second origin TTL makes it the least disruptive demo asset.
 
 ---
 
 ### A5. Content Deployment Workflow
 
-Shows how a code change reaches the edge.
+Keep deployment as an architecture talking point rather than a live coding exercise.
 
 **Steps**:
-1. Make a change to the app (e.g., update `version.json`)
-2. Redeploy: `azd deploy`
-3. Purge the edge cache: `bash scripts/purge.sh /static/version.json`
-4. Verify the new version is live at the edge
+1. In the resource group, open either Container App and show **Revisions and replicas**.
+2. Explain that one application image is deployed to both regional origins.
+3. Return to the Front Door profile and show that consumers use one endpoint while deployments happen independently behind it.
+4. Reference the cache-purge flow from A4 as the final step after a static-content release.
 
-**Expected Output**: Updated content visible through Front Door after deploy + purge.
+**Expected result**: The audience sees the deployment boundary and revision history without changing code during the demo.
 
 ---
 
 ### A6. TLS & Certificate Management
 
 **Steps**:
-1. Show [docs/tls-certificate-management.md](tls-certificate-management.md)
-2. In Portal → Front Door → Custom Domains → show managed certificate option
-3. Explain managed vs. BYOC (Bring Your Own Certificate) via Key Vault
+1. On the sandbox website, point out the HTTPS lock and the `azurefd.net` hostname.
+2. In `afdemo-afd`, open **Front Door manager**, edit `default-route`, and show **HTTPS redirect** enabled and **Forwarding protocol** set to HTTPS only. Cancel without saving.
+3. Open **Domains** and explain that the sandbox intentionally deploys only the default endpoint domain.
+4. Use [TLS and certificate management](tls-certificate-management.md) to explain Microsoft-managed certificates versus bring-your-own certificates from Key Vault.
 
-**Expected Output**: Documentation walkthrough; no live cert changes needed.
+**Expected result**: The live endpoint is HTTPS-only. No domain or certificate changes are made during the demo.
 
 ---
 
 ### A7. Multi-Subdomain & User Management
 
 **Steps**:
-1. Show Front Door deployment output: `customDomainConfig` (4 placeholder subdomains)
-2. In Portal → Resource Group → Access Control (IAM) → show how roles would be assigned
-3. Reference [docs/operating-model.md](operating-model.md) RACI section
+1. In the Front Door profile, open **Domains** and describe the planned `www`, `api`, `cdn`, and `portal` subdomains.
+2. Clarify that these names are design placeholders, not deployed custom-domain resources; production onboarding requires DNS validation and route association.
+3. Return to `rg-afd-demo` and open **Access control (IAM)** > **Role assignments** to show the current access boundary. Do not add an assignment during the demo.
+4. Reference the RACI in [Operating Model](operating-model.md).
 
-**Expected Output**: Configuration shows www/api/cdn/portal subdomains. IAM blade open for role assignment walkthrough.
+**Expected result**: The audience sees where domain onboarding and Azure RBAC are managed without changing the sandbox.
 
 ---
 
@@ -140,206 +131,152 @@ Shows how a code change reaches the edge.
 ### B1. WAF Overview & Managed Rules
 
 **Steps**:
-1. Portal → Front Door → WAF Policy → Managed Rules
-2. Show DefaultRuleSet 2.1 and BotManagerRuleSet 1.1 enabled
+1. Open `afdemowafpolicy` from the resource group.
+2. On **Overview**, show that the policy is enabled, uses the Premium tier, and runs in **Prevention** mode.
+3. Open **Managed rules** and show `Microsoft_DefaultRuleSet` 2.1 and `Microsoft_BotManagerRuleSet` 1.1.
+4. Open **Custom rules** and note that lower priority numbers run first.
+5. In `afdemo-afd`, open **Security policies** and show that `waf-security-policy` associates the WAF policy with the endpoint for `/*`.
+
+**Expected result**: The policy is globally associated with the demo endpoint and can block matching requests before they reach either origin.
 
 ---
 
-### B2. WAF Custom Rule — Header Block
+### B2. Live WAF Block From the Website
 
 **Steps**:
-```bash
-# Normal request — should succeed
-curl -s -o /dev/null -w "HTTP %{http_code}\n" "https://$AFD_ENDPOINT/api/health"
-# Expected: HTTP 200
+1. On the website under **WAF Test Triggers (Safe)**, select **Normal Request**.
+2. Confirm the page displays **Allowed (HTTP 200)**.
+3. Select **Trigger WAF Block**.
+4. Confirm the page displays **Blocked by WAF (HTTP 403)**.
+5. In the WAF policy, open **Custom rules** > `BlockDemoQueryParam` and show the query-string condition `waf-test=block` and the **Block** action.
+6. Repeat each website request a few times to create a visible allow/block pattern for the security workbook.
 
-# Request with blocking header — should be blocked
-curl -s -o /dev/null -w "HTTP %{http_code}\n" \
-  -H "X-Demo-Block: true" "https://$AFD_ENDPOINT/api/health"
-# Expected: HTTP 403
-```
-
-**Expected Output**: First request returns 200, second returns 403.
+**Expected result**: Two adjacent website controls produce an allowed request and a blocked request, and the portal shows the exact rule responsible.
 
 ---
 
-### B3. WAF Bot Management
+### B3. Header and Bot Rules
 
 **Steps**:
-```bash
-# Request with suspicious user agent
-curl -s -o /dev/null -w "HTTP %{http_code}\n" \
-  -A "DemoMaliciousBot/1.0" "https://$AFD_ENDPOINT/api/health"
-# Expected: HTTP 403
-```
+1. In **Custom rules**, open `BlockDemoHeader` and show the `X-Demo-Block: true` condition.
+2. Open `BlockDemoBotUA` and show the lowercased `demomaliciousbot/1.0` user-agent match.
+3. Explain that browsers do not let page JavaScript override these protected headers, so the website uses `BlockDemoQueryParam` for the live visual test.
+4. Keep the website's collapsed **Additional WAF exercises** section closed unless someone specifically asks about non-browser testing.
+
+**Expected result**: The audience sees the additional controls in the portal without interrupting the visual demo with terminal requests.
 
 ---
 
 ### B4. Rate Limiting Exercise
 
 **Steps**:
-```bash
-bash scripts/generate-traffic.sh 150 10
-```
+1. In **Custom rules**, open `RateLimitPerIP`.
+2. Show the one-minute window, threshold of 100 requests per client IP, and **Block** action.
+3. Explain that this rule protects every path because its request-URI condition matches the whole site.
+4. Use recent data in the WAF workbook if rate-limit events were generated before the session; do not generate a burst during the live demo.
 
-**Expected Output**: First ~100 requests succeed (HTTP 200), remaining get HTTP 429 or 403 (rate limited).
+**Expected result**: Rate limiting is explained visually from policy configuration and existing telemetry without flooding the shared lab IP.
 
 ---
 
 ### B5. Origin Failover Exercise
 
 **Steps**:
-```bash
-# Check which origin is currently serving
-curl -s "https://$AFD_ENDPOINT/api/health" | jq '{origin, region}'
+1. On the website, select **Call /api/health** and note `eastus2`, the primary region.
+2. In `afdemo-afd`, open **Origin groups** > `default-origin-group` and show `origin-a` at priority 1 and `origin-b` at priority 2.
+3. Open the `afdemo-origin-a` Container App in a separate portal tab.
+4. Select **Revisions and replicas**, record the active revision name, select that revision, and choose **Deactivate**. Confirm the action.
+5. Return to the website and select **Call /api/health** about every 30 seconds.
+6. After Front Door marks the primary unhealthy, confirm that requests return HTTP 200 from `westus2`.
+7. Immediately return to `afdemo-origin-a`, select the same revision, and choose **Activate**.
+8. Continue checking **Call /api/health** until `eastus2` is serving again, then verify both origins are enabled in `default-origin-group`.
 
-# Disable Origin A (priority 1 — the primary)
-bash scripts/toggle-failover.sh disable origin-a
+**Expected result**: The public hostname stays the same while the displayed serving region changes from `eastus2` to `westus2`, then returns to `eastus2` after recovery.
 
-# Wait up to 15 minutes for Origin B to begin serving
-origin=""
-for attempt in {1..30}; do
-  origin=$(curl -fsS "https://$AFD_ENDPOINT/api/health" | jq -r '.origin')
-  [[ "$origin" == "b" ]] && break
-  sleep 30
-done
-if [[ "$origin" != "b" ]]; then
-  echo "Origin B did not begin serving within 15 minutes." >&2
-  exit 1
-fi
-curl -fsS "https://$AFD_ENDPOINT/api/health" | jq '{origin, region}'
-
-# Re-enable Origin A
-bash scripts/toggle-failover.sh enable origin-a
-```
-
-**Expected Output**: The health endpoint keeps responding with HTTP 200 throughout, and `origin` eventually flips from `a` to `b`.
-
-> **Timing**: Disabling an origin is a Front Door **configuration** change, not a health-probe event, so it takes **5–15 minutes** to propagate globally — not one probe cycle. `az afd origin show` will report `enabledState: Disabled` and `deploymentStatus: NotStarted` for most of that window while the edge still serves from origin A. This is expected; keep polling.
+> Deactivating a revision stops all of its replicas. With 30-second probes and three successful samples required, detection usually takes about 90-120 seconds. A few requests can fail while the edge converges, so narrate retries as health-probe detection rather than an instant switch.
 >
-> For a **fast** failover demo (~2 minutes), make the origin fail its health probe instead of disabling it:
->
-> ```bash
-> RG=$(azd env get-value AZURE_RESOURCE_GROUP)
-> APP=$(azd env get-value originAAppName)
-> REVISION=$(az containerapp revision list \
->   --resource-group "$RG" \
->   --name "$APP" \
->   --query "[?properties.active].name | [0]" \
->   --output tsv)
-> test -n "$REVISION"
->
-> # Stop every replica in the active revision.
-> az containerapp revision deactivate \
->   --resource-group "$RG" \
->   --name "$APP" \
->   --revision "$REVISION"
->
-> restore_revision() {
->   az containerapp revision activate \
->     --resource-group "$RG" \
->     --name "$APP" \
->     --revision "$REVISION"
-> }
-> trap restore_revision EXIT
->
-> origin=""
-> for attempt in {1..10}; do
->   origin=$(curl -fsS "https://$AFD_ENDPOINT/api/health" 2>/dev/null | jq -r '.origin' || true)
->   [[ "$origin" == "b" ]] && break
->   sleep 30
-> done
-> if [[ "$origin" != "b" ]]; then
->   echo "Origin B did not begin serving within 5 minutes." >&2
->   exit 1
-> fi
-> curl -fsS "https://$AFD_ENDPOINT/api/health" | jq '{origin, region}'
->
-> restore_revision
-> trap - EXIT
-> ```
->
-> Deactivating a revision stops all of its replicas. With `probeIntervalInSeconds: 30` and `successfulSamplesRequired: 3`, the edge drops origin A after roughly 90–120s.
+> Do not disable `origin-a` in the Front Door origin editor for the live path. That is a configuration change and usually takes 5-15 minutes to propagate. Always reactivate the primary revision before leaving this section.
 
 ---
 
 ### B6. DDoS Protection
 
 **Steps**:
-1. Show [docs/architecture.md](architecture.md) §9 DDoS section
-2. Portal → Front Door → review built-in L3/L4 mitigation
-3. Azure DDoS Network Protection is available for VNet-level resources
+1. Return to the Front Door profile and explain that the public application is exposed through Microsoft's global edge rather than through the origin hostnames.
+2. Show the WAF association and prevention mode as the application-layer control demonstrated in B2.
+3. Use the [architecture guide](architecture.md) to distinguish Front Door platform protection from Azure DDoS Network Protection for VNet-hosted resources.
+
+**Expected result**: This is a configuration walkthrough only; no denial-of-service traffic is generated.
 
 ---
 
-## Section C: Innovation & Intelligent Automation
+## Section C: Observability & SOC
 
-### C1. Analytics & KQL Queries
+### C1. Visual Traffic and WAF Analytics
 
 **Steps**:
-1. Portal → Log Analytics → run KQL queries from [docs/analytics-kql.md](analytics-kql.md)
-2. Open the deployed Azure Workbook dashboard
+1. Make several cache, API, normal WAF, and blocked WAF requests from the sandbox website.
+2. In the resource group, open the shared workbook `afdemo Front Door Traffic Analytics`.
+3. Set the time range to **Last 24 hours** and select **Refresh**.
+4. Show request volume, latency percentiles, cache hit ratio, HTTP status distribution, geography, and origin health.
+5. Open `afdemo WAF Security Analytics`, use the same time range, and show blocked requests, top rules, source IPs, and countries.
+6. Optionally open `afdemo Front Door CDN WAF Dashboard` for the consolidated operational view.
 
-```bash
-# Quick log query via CLI
-az monitor log-analytics query \
-  -w "$(az monitor log-analytics workspace show -g rg-afd-demo -n afdemo-law --query customerId -o tsv)" \
-  --analytics-query "AzureDiagnostics | where Category == 'FrontDoorAccessLog' | summarize count() by httpStatusCode_s | sort by count_ desc" \
-  --output table
-```
+**Expected result**: Website interactions appear as traffic and security evidence after diagnostic-log ingestion completes.
+
+> If a chart is empty, widen the time range, select **Refresh**, and allow several minutes for ingestion. The workbooks are the primary demo surface; no query is required.
+
+**Optional portal investigation**:
+1. Open `afdemo-law` > **Logs**.
+2. Paste one query from [Analytics KQL Queries](analytics-kql.md) into the portal query editor and select **Run**.
+3. Keep this step for technical audiences that want to move from a chart to its underlying records.
 
 ---
 
 ### C2. SOC / Sentinel Integration
 
 **Steps**:
-1. Portal → Microsoft Sentinel → select the `afdemo-law` workspace
-2. Show the Sentinel workspace overview (the solution is deployed via Bicep)
-3. Walk through creating an analytics rule: Analytics → Create → Scheduled query rule
-4. Show [docs/soc-automation-stub.md](soc-automation-stub.md) for automation workflow
+1. Open **Microsoft Sentinel** and select the `afdemo-law` workspace.
+2. On **Overview**, show that Sentinel is onboarded to the same workspace used by the Front Door workbooks.
+3. Open **Content hub** and show the installed **Azure Web Application Firewall** and **Network Session Essentials** solutions.
+4. Open **Logs** or **Hunting** to show where WAF telemetry can support investigation.
+5. Open **Analytics** to explain where a scheduled detection would be created; do not create one during the visual demo.
+6. Use [SOC Automation Stub](soc-automation-stub.md) as the target workflow for incident creation and response automation.
 
-**Expected Output**: Sentinel workspace active, ready for rule creation and incident management.
+**Expected result**: Sentinel and its content are active on `afdemo-law`. A custom scheduled analytics rule and automated incident are not assumed to be deployed.
 
 ---
 
 ### C3. Security Copilot — AI-Assisted SOC (Live)
 
-**Pre-req**: Security Copilot SCU capacity is **opt-in** and is *not* deployed by default. Enable it before `azd up` (1 SCU, pay-as-you-go ~$4/hr):
-
-```bash
-azd env set DEPLOY_SECURITY_COPILOT true
-azd up
-```
+**Optional prerequisite**: This section requires the opt-in `afdemo-seccopilot` capacity, Security Copilot access, and the Microsoft Sentinel plugin to be configured before the session. The default deployment does not create paid capacity.
 
 **Steps**:
 
-1. **Open Security Copilot in Portal**
-   - Azure Portal → Microsoft Security Copilot (or open the embedded pane inside Sentinel)
+1. **Open Microsoft Security Copilot**
+   Open the standalone experience or the embedded experience in Microsoft Sentinel.
 
 2. **Natural Language KQL — Live Query**
    Type this prompt into Copilot:
    > *"Show me all WAF block events from the last hour, grouped by source IP and rule name"*
 
-   Copilot generates and runs KQL against the Sentinel workspace. Compare its output with the manual query in [docs/analytics-kql.md](analytics-kql.md).
+   Compare the response with the WAF workbook or the equivalent query in [Analytics KQL Queries](analytics-kql.md).
 
-3. **Incident Summarization**
-   - If a Sentinel incident exists from the WAF block exercise (Section B2/B3), ask:
+3. **Optional Incident Summarization**
+   If the facilitator created a Sentinel incident before the session, ask:
    > *"Summarize the latest Sentinel incident related to WAF blocks"*
-   - Copilot returns a plain-language summary with affected IPs, triggered rules, timeline, and severity assessment.
+
+   Skip this prompt when no pre-seeded incident exists; the website WAF test creates logs, not an incident by itself.
 
 4. **Threat Intelligence Lookup**
-   - Pick a source IP from the WAF logs and ask:
+   Pick a source IP from the WAF workbook and ask:
    > *"What do we know about this IP? Check threat intelligence."*
-   - Copilot correlates against Microsoft Threat Intelligence and flags reputation, geo, and known campaigns.
 
 5. **Guided Response Recommendation**
-   - Ask:
+   If an incident is available, ask:
    > *"What response actions do you recommend for this incident?"*
-   - Copilot suggests: block IP in WAF, create a custom rule, escalate to Tier 2, or close as expected traffic.
 
-Security Copilot is deployed as infrastructure alongside Sentinel — same `azd up`, same resource group, same teardown — once opted in. Pay-as-you-go with no per-user licenses.
-
-**Expected Output**: Live Copilot responses showing KQL generation, incident summary, and TI enrichment against real WAF log data.
+**Expected result**: When the optional capacity and plugins are ready, Copilot can investigate the same WAF evidence shown visually in the workbooks.
 
 ---
 
@@ -347,14 +284,14 @@ Security Copilot is deployed as infrastructure alongside Sentinel — same `azd 
 
 ### D1. Migration & Onboarding
 
-See [docs/migration-onboarding.md](migration-onboarding.md) for the full phased migration plan:
+See [Migration and Onboarding](migration-onboarding.md) for the full phased migration plan:
 assessment → parallel run → DNS cutover → validation → decommission
 
 ---
 
 ### D2. Operating Model & SLA
 
-See [docs/operating-model.md](operating-model.md) for:
+See [Operating Model](operating-model.md) for:
 RACI matrix, support tiers, SLA-backed response times, escalation path
 
 ---
@@ -368,10 +305,11 @@ Potential additions to this sandbox:
 
 ---
 
-## Teardown
+## After the Session
 
-```bash
-azd down
-```
+1. Confirm `afdemo-origin-a` is active and the website health control reports `eastus2`.
+2. Leave the environment running if it is shared with another session.
+3. When deletion is approved, open **Resource groups** > `rg-afd-demo` > **Delete resource group**.
+4. Review the resource list, enter the resource-group name when prompted, and confirm deletion.
 
-Confirm resource deletion is initiated. Front Door profiles take 15–25 minutes to fully delete.
+Front Door Premium profiles can take 15-25 minutes to delete. Monitor **Notifications** or the resource group's **Activity log** rather than repeating the delete action.
