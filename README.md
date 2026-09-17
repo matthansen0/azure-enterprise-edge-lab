@@ -91,3 +91,11 @@ See the [Visual Demo Lab Guide](docs/sandbox-playbook.md) for a portal-first wal
 - **No real exploit payloads** — WAF blocking is shown with safe custom headers and benign traffic.
 - **Fully idempotent** — deploy and destroy cleanly.
 - **Self-contained** — everything needed to deploy is in this repo.
+
+## Repo Stats
+
+<p align="center">
+  <a href="https://repologbook.com/">
+    <img src="https://repoanalyticsprod4rquhaw.z19.web.core.windows.net/badges/g1S0O_imkibXrfmYSiXPMQ.svg" alt="repologbook.com">
+  </a>
+</p>
