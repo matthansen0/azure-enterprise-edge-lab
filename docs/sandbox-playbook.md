@@ -38,7 +38,7 @@
 Start with the architecture diagram, then connect each component to a deployed portal resource.
 
 **Steps**:
-1. Show the [interactive architecture diagram](architecture/azure-front-door-sandbox.architecture.html).
+1. Show the [interactive architecture diagram](https://matthansen0.github.io/azure-enterprise-edge-lab/).
 2. In the Azure portal, open **Resource groups** > `rg-afd-demo`.
 3. Point out the Front Door profile, WAF policy, two Container Apps in different regions, Log Analytics workspace, and workbooks.
 4. Open `afdemo-afd` and show the Premium SKU and endpoint on **Overview**.
