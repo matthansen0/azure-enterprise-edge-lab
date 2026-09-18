@@ -85,7 +85,7 @@ resource trafficWorkbook 'Microsoft.Insights/workbooks@2023-06-01' = {
           type: 3
           content: {
             version: 'KqlItem/1.0'
-            query: 'AzureDiagnostics\n| where ResourceProvider == "MICROSOFT.CDN" and Category == "FrontDoorAccessLog"\n| summarize Count = count() by httpStatusCode_d\n| order by Count desc\n| render piechart'
+            query: 'AzureDiagnostics\n| where ResourceProvider == "MICROSOFT.CDN" and Category == "FrontDoorAccessLog"\n| summarize Count = count() by httpStatusCode_s\n| order by Count desc\n| render piechart'
             size: 0
             title: 'HTTP Status Code Distribution'
             timeContext: { durationMs: 86400000 }
@@ -113,9 +113,9 @@ resource trafficWorkbook 'Microsoft.Insights/workbooks@2023-06-01' = {
           type: 3
           content: {
             version: 'KqlItem/1.0'
-            query: 'AzureDiagnostics\n| where ResourceProvider == "MICROSOFT.CDN" and Category == "FrontDoorHealthProbeLog"\n| summarize HealthyCount = countif(httpStatusCode_d >= 200 and httpStatusCode_d < 400), UnhealthyCount = countif(httpStatusCode_d >= 400 or httpStatusCode_d == 0) by origin_s, bin(TimeGenerated, 5m)\n| render timechart'
+            query: 'AzureDiagnostics\n| where ResourceProvider == "MICROSOFT.CDN" and Category == "FrontDoorHealthProbeLog"\n// Front Door only logs FAILED health probes, so every row here is a failure — no rows means all probes succeeded.\n| summarize FailedProbes = count() by originName_s, bin(TimeGenerated, 5m)\n| render timechart'
             size: 0
-            title: 'Origin Health Probe Results'
+            title: 'Origin Health Probe Failures (no data = healthy)'
             timeContext: { durationMs: 86400000 }
             queryType: 0
             resourceType: 'microsoft.operationalinsights/workspaces'
@@ -213,7 +213,7 @@ resource wafWorkbook 'Microsoft.Insights/workbooks@2023-06-01' = {
           type: 3
           content: {
             version: 'KqlItem/1.0'
-            query: 'AzureDiagnostics\n| where ResourceProvider == "MICROSOFT.CDN" and Category == "FrontDoorWebApplicationFirewallLog"\n| summarize Count = count() by policyName_s, action_s\n| render barchart'
+            query: 'AzureDiagnostics\n| where ResourceProvider == "MICROSOFT.CDN" and Category == "FrontDoorWebApplicationFirewallLog"\n| summarize Count = count() by policy_s, action_s\n| render barchart'
             size: 0
             title: 'WAF Policy Actions Summary'
             timeContext: { durationMs: 86400000 }

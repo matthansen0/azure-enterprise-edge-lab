@@ -74,11 +74,12 @@ Two identical Azure Container App instances in separate Azure regions provide:
 ### 6. SOC / SIEM Integration
 
 - **Microsoft Sentinel** solution enabled on the Log Analytics workspace (deployed via Bicep)
-- **Analytics rules**: created post-deployment via the Azure Portal or CLI (ARM-deployed rules can fail if the workspace hasn't fully onboarded)
-- **Automation placeholder**: Logic App skeleton for Teams/email notification (see [soc-automation-stub.md](soc-automation-stub.md))
+- **Analytics rule**: `WAF Block Events Detected` (scheduled, deployed via Bicep) creates a real incident when the same rule/client IP exceeds 5 WAF blocks in 5 minutes. It `dependsOn` the Sentinel onboarding state resource to avoid the ARM race condition where analytics rules can fail if the workspace hasn't fully onboarded yet.
+- **Automation rule**: `Auto-triage WAF block incidents` (deployed via Bicep) labels and adds a review task to incidents created by the rule above, using built-in actions only — no Logic App/playbook required.
+- **Automation extension point**: Logic App skeleton for Teams/email notification remains a documented, not-deployed extension (see [soc-automation-stub.md](soc-automation-stub.md))
 - **Integration points**: Sentinel data connectors, custom KQL detections
 
-> **Portal path**: Microsoft Sentinel → select the `afdemo-law` workspace → Analytics → Create rule
+> **Portal path**: Microsoft Sentinel (or the unified Defender portal at `security.microsoft.com`) → select the `afdemo-law` workspace → Analytics → `WAF Block Events Detected`
 
 ### 8. Identity & RBAC
 

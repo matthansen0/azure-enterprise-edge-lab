@@ -109,3 +109,101 @@ resource sentinelOnboarding 'Microsoft.SecurityInsights/onboardingStates@2024-01
   name: 'default'
   properties: {}
 }
+
+// ---------------------------------------------------------------------------
+// Sentinel Analytics Rule: WAF Block Events Detected
+// Turns Front Door WAF blocks into real Sentinel incidents out-of-box.
+// dependsOn sentinelOnboarding to avoid the workspace-onboarding race condition.
+// ---------------------------------------------------------------------------
+resource wafBlockAlertRule 'Microsoft.SecurityInsights/alertRules@2024-01-01-preview' = {
+  scope: workspace
+  name: guid(workspaceId, 'waf-block-events-rule')
+  dependsOn: [sentinelOnboarding]
+  kind: 'Scheduled'
+  properties: {
+    displayName: 'WAF Block Events Detected'
+    description: 'Detects more than 5 Front Door WAF blocks in a 5-minute window for the same rule/client IP.'
+    severity: 'Medium'
+    enabled: true
+    query: '''
+AzureDiagnostics
+| where ResourceProvider == "MICROSOFT.CDN" and Category == "FrontDoorWebApplicationFirewallLog"
+| where action_s == "Block"
+| summarize BlockCount = count() by bin(TimeGenerated, 5m), ruleName_s, clientIP_s
+| where BlockCount > 5
+| project TimeGenerated, ruleName_s, clientIP_s, BlockCount
+'''
+    queryFrequency: 'PT5M'
+    queryPeriod: 'PT10M'
+    triggerOperator: 'GreaterThan'
+    triggerThreshold: 0
+    suppressionEnabled: false
+    suppressionDuration: 'PT5H'
+    tactics: ['InitialAccess']
+    incidentConfiguration: {
+      createIncident: true
+      groupingConfiguration: {
+        enabled: true
+        reopenClosedIncident: false
+        lookbackDuration: 'PT5H'
+        matchingMethod: 'Selected'
+        groupByEntities: ['IP']
+      }
+    }
+    entityMappings: [
+      {
+        entityType: 'IP'
+        fieldMappings: [
+          { identifier: 'Address', columnName: 'clientIP_s' }
+        ]
+      }
+    ]
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Automation Rule: auto-triage incidents from the WAF block analytics rule
+// Uses zero-config built-in actions only — no Logic App/playbook required.
+// ---------------------------------------------------------------------------
+resource wafAutomationRule 'Microsoft.SecurityInsights/automationRules@2024-01-01-preview' = {
+  scope: workspace
+  name: guid(workspaceId, 'waf-block-automation-rule')
+  properties: {
+    displayName: 'Auto-triage WAF block incidents'
+    order: 1
+    triggeringLogic: {
+      isEnabled: true
+      triggersOn: 'Incidents'
+      triggersWhen: 'Created'
+      conditions: [
+        {
+          conditionType: 'Property'
+          conditionProperties: {
+            propertyName: 'IncidentRelatedAnalyticRuleIds'
+            operator: 'Contains'
+            propertyValues: [wafBlockAlertRule.id]
+          }
+        }
+      ]
+    }
+    actions: [
+      {
+        order: 1
+        actionType: 'ModifyProperties'
+        actionConfiguration: {
+          labels: [
+            { labelName: 'waf-auto-triage' }
+          ]
+        }
+      }
+      {
+        order: 2
+        actionType: 'AddIncidentTask'
+        actionConfiguration: {
+          title: 'Review WAF block incident'
+          description: 'WAF blocked more than 5 requests from the same rule/client IP within a 5-minute window. Review the WAF Security Analytics workbook for this client IP before escalating.'
+        }
+      }
+    ]
+  }
+}

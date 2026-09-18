@@ -90,7 +90,7 @@
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "AzureDiagnostics\n| where Category == \"FrontDoorAccessLog\"\n| where TimeGenerated {TimeRange}\n| summarize AvgLatency = avg(timeTaken_d), P95 = percentile(timeTaken_d, 95) by bin(TimeGenerated, 5m)\n| render timechart",
+        "query": "AzureDiagnostics\n| where Category == \"FrontDoorAccessLog\"\n| where TimeGenerated {TimeRange}\n| summarize AvgLatency = avg(todouble(timeTaken_s)), P95 = percentile(todouble(timeTaken_s), 95) by bin(TimeGenerated, 5m)\n| render timechart",
         "size": 0,
         "title": "Latency (Avg & P95)",
         "queryType": 0,
@@ -140,9 +140,9 @@
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "AzureDiagnostics\n| where Category == \"FrontDoorHealthProbeLog\"\n| where TimeGenerated {TimeRange}\n| summarize Count = count() by healthProbeStatus_s, originName_s\n| render barchart",
+        "query": "AzureDiagnostics\n| where Category == \"FrontDoorHealthProbeLog\"\n| where TimeGenerated {TimeRange}\n| summarize FailedProbes = count() by originName_s\n| render barchart",
         "size": 0,
-        "title": "Health Probe Results by Origin",
+        "title": "Health Probe Failures by Origin (no data = healthy; only failed probes are logged)",
         "queryType": 0,
         "visualization": "barchart"
       },

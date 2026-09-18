@@ -84,10 +84,10 @@ AzureDiagnostics
 AzureDiagnostics
 | where Category == "FrontDoorAccessLog"
 | summarize
-    AvgLatency = avg(timeTaken_d),
-    P50 = percentile(timeTaken_d, 50),
-    P95 = percentile(timeTaken_d, 95),
-    P99 = percentile(timeTaken_d, 99)
+    AvgLatency = avg(todouble(timeTaken_s)),
+    P50 = percentile(todouble(timeTaken_s), 50),
+    P95 = percentile(todouble(timeTaken_s), 95),
+    P99 = percentile(todouble(timeTaken_s), 99)
   by bin(TimeGenerated, 5m)
 | render timechart
 ```
@@ -96,7 +96,7 @@ AzureDiagnostics
 ```kql
 AzureDiagnostics
 | where Category == "FrontDoorAccessLog"
-| summarize AvgLatency = avg(timeTaken_d), P95 = percentile(timeTaken_d, 95) by originName_s
+| summarize AvgLatency = avg(todouble(timeTaken_s)), P95 = percentile(todouble(timeTaken_s), 95) by originName_s
 | sort by AvgLatency asc
 ```
 
@@ -104,9 +104,9 @@ AzureDiagnostics
 ```kql
 AzureDiagnostics
 | where Category == "FrontDoorAccessLog"
-| where timeTaken_d > 2000
-| project TimeGenerated, requestUri_s, timeTaken_d, httpStatusCode_s, originName_s, cacheStatus_s
-| sort by timeTaken_d desc
+| where todouble(timeTaken_s) > 2
+| project TimeGenerated, requestUri_s, timeTaken_s, httpStatusCode_s, originName_s, cacheStatus_s
+| sort by todouble(timeTaken_s) desc
 | take 50
 ```
 
@@ -171,20 +171,21 @@ AzureDiagnostics
 
 ## Origin Health
 
-### Health Probe Results
+> Front Door only logs **failed** health probes — there is no "success" row to compare against, so these queries only ever show failures. No rows means every probe in the time range succeeded.
+
+### Health Probe Failures by Origin
 ```kql
 AzureDiagnostics
 | where Category == "FrontDoorHealthProbeLog"
-| summarize Count = count() by healthProbeStatus_s, originName_s
+| summarize FailedProbes = count() by originName_s
 | render barchart
 ```
 
-### Health Probe Failures
+### Health Probe Failure Details
 ```kql
 AzureDiagnostics
 | where Category == "FrontDoorHealthProbeLog"
-| where healthProbeStatus_s != "200"
-| project TimeGenerated, originName_s, healthProbeStatus_s
+| project TimeGenerated, originName_s, result_s, httpStatusCode_s
 | sort by TimeGenerated desc
 | take 50
 ```
@@ -194,11 +195,15 @@ AzureDiagnostics
 AzureDiagnostics
 | where Category == "FrontDoorAccessLog"
 | where isnotempty(originName_s)
-| summarize AvgOriginLatency = avg(timeTaken_d) by originName_s, bin(TimeGenerated, 5m)
+| summarize AvgOriginLatency = avg(todouble(timeTaken_s)) by originName_s, bin(TimeGenerated, 5m)
 | render timechart
 ```
 
 ---
+
+## Copilot in Log Analytics
+
+`afdemo-law` > **Logs** opens a free, built-in Copilot chat pane by default. Ask it any of the questions above in plain language (e.g. "show WAF blocked requests by rule in the last hour") and it drafts and runs the KQL for you. This is separate from — and free unlike — the Security Copilot prompts below.
 
 ## Security Copilot Prompt Examples
 

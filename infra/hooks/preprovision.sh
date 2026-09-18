@@ -27,3 +27,20 @@ if STATE=$(az group show --name "$RG" --query "properties.provisioningState" -o 
 else
   echo "Resource group does not exist. Proceeding."
 fi
+
+# ---------------------------------------------------------------------------
+# If Security Copilot capacity is requested, ensure the (preview) resource
+# provider is registered first — an unregistered RP causes deployment to
+# fail rather than silently skip, so surface this before provisioning starts.
+# ---------------------------------------------------------------------------
+if [ "$(echo "${DEPLOY_SECURITY_COPILOT:-false}" | tr '[:upper:]' '[:lower:]')" = "true" ]; then
+  echo "DEPLOY_SECURITY_COPILOT=true — checking Microsoft.SecurityCopilot provider registration..."
+  STATE=$(az provider show --namespace Microsoft.SecurityCopilot --query registrationState -o tsv 2>/dev/null || echo "NotFound")
+  if [ "$STATE" != "Registered" ]; then
+    echo "Microsoft.SecurityCopilot is '$STATE' — registering now (this can take a few minutes)..."
+    az provider register --namespace Microsoft.SecurityCopilot --wait
+    echo "Microsoft.SecurityCopilot registration complete."
+  else
+    echo "Microsoft.SecurityCopilot is already registered."
+  fi
+fi

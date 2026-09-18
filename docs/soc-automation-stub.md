@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes the Sentinel automation workflow that would be deployed for production SOC integration. In this sandbox environment, the automation is represented as a skeleton — the Logic App and notification connectors are described but not fully deployed to avoid requiring external service credentials.
+This document describes the Sentinel automation workflow for this sandbox. The **analytics rule and automation rule are deployed via Bicep** (`infra/bicep/modules/sentinel-content.bicep`) and create real incidents with zero manual setup. The **Logic App notification playbook** (Teams/email) is described below as a skeleton only, to avoid requiring external service credentials in the sandbox.
 
 ---
 
@@ -22,23 +22,31 @@ WAF Block Events → Sentinel Analytics Rule → Sentinel Incident
                                        Notification   (SOC Team)
 ```
 
-## Sentinel Analytics Rule (Deployed)
+## Sentinel Analytics Rule (Deployed via Bicep)
 
 **Name**: WAF Block Events Detected
 
 - **Query Frequency**: Every 5 minutes
 - **Lookback**: 10 minutes
-- **Trigger**: >5 WAF blocks in a 5-minute window
+- **Trigger**: >5 WAF blocks in a 5-minute window for the same rule/client IP
 - **Severity**: Medium
 - **Tactic**: Initial Access
 
 ```kql
 AzureDiagnostics
-| where Category == "FrontDoorWebApplicationFirewallLog"
+| where ResourceProvider == "MICROSOFT.CDN" and Category == "FrontDoorWebApplicationFirewallLog"
 | where action_s == "Block"
 | summarize BlockCount = count() by bin(TimeGenerated, 5m), ruleName_s, clientIP_s
 | where BlockCount > 5
 ```
+
+## Automation Rule (Deployed via Bicep)
+
+**Name**: Auto-triage WAF block incidents
+
+Triggers on incidents created by the rule above and, using built-in actions only (no Logic App/playbook required):
+- Adds the `waf-auto-triage` label to the incident
+- Adds a "Review WAF block incident" task with investigation guidance
 
 ## Logic App Playbook (Skeleton)
 
@@ -102,6 +110,14 @@ resource logicApp 'Microsoft.Logic/workflows@2019-05-01' = {
 ---
 
 ## Security Copilot Integration (Opt-In)
+
+### Before You Enable This
+
+1. Set the flag **before** `azd up`: `azd env set DEPLOY_SECURITY_COPILOT true`.
+2. The `preprovision` hook automatically checks whether the `Microsoft.SecurityCopilot` resource provider is registered on your subscription and registers it if needed (preview RPs aren't always auto-registered). Watch for this in the `azd up` output.
+3. The `postdeploy` hook then verifies the `<prefix>-seccopilot` capacity resource actually exists and prints a clear pass/fail — if it reports missing, check subscription eligibility/quota for the Security Copilot preview in `eastus` before assuming it's a deployment bug.
+4. Access is through the **Azure Portal** — there is no separate `securitycopilot.microsoft.com` portal. Open **Security Copilot** directly or the embedded pane inside Microsoft Sentinel.
+5. Capacity provisioning after `azd up` reports success can still take a few minutes to become usable in the portal.
 
 ### Overview
 

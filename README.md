@@ -41,12 +41,15 @@ export DEMO_RG="rg-afd-demo"
 
 ### 3. Deploy
 
-> **Security Copilot** is **not** deployed by default (it bills at ~\$4/hr per SCU).
-> To opt in, set the parameter before deploying:
+> **Before you enable Security Copilot**: it is **not** deployed by default (it bills at ~\$4/hr per SCU) and its `Microsoft.SecurityCopilot` resource provider is a preview RP that may need registering on your subscription. See [SOC Automation Stub — Security Copilot Integration](docs/soc-automation-stub.md#security-copilot-integration-opt-in) for the full prerequisites and portal walkthrough.
+>
+> To opt in, set the parameter **before** running `azd up`:
 >
 > ```bash
 > azd env set DEPLOY_SECURITY_COPILOT true
 > ```
+>
+> The `preprovision` hook automatically checks (and registers, if needed) the `Microsoft.SecurityCopilot` provider when this flag is set, and the `postdeploy` hook verifies the capacity was actually created — watch the `azd up` output for a clear pass/fail instead of a silent skip.
 
 ```bash
 azd init              # First time: select environment name, subscription, location

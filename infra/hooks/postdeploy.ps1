@@ -14,6 +14,24 @@ $Prefix      = if ($env:DEMO_PREFIX) { $env:DEMO_PREFIX } else { 'afdemo' }
 $Profile     = "$Prefix-afd"
 $EndpointName = "$Prefix-endpoint"
 
+# ---------------------------------------------------------------------------
+# If Security Copilot capacity was requested, verify it actually exists —
+# a silent skip (e.g. RP not registered, quota, region) should be visible.
+# ---------------------------------------------------------------------------
+if ($env:DEPLOY_SECURITY_COPILOT -and $env:DEPLOY_SECURITY_COPILOT.ToLower() -eq 'true') {
+    $CapacityName = "$Prefix-seccopilot"
+    Write-Host "DEPLOY_SECURITY_COPILOT=true - verifying '$CapacityName' capacity was actually created..."
+    az resource show --resource-group $RG --resource-type Microsoft.SecurityCopilot/capacities --name $CapacityName -o none 2>$null
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "Security Copilot capacity '$CapacityName' exists."
+    } else {
+        Write-Host "Security Copilot capacity '$CapacityName' was NOT found, even though DEPLOY_SECURITY_COPILOT=true."
+        Write-Host "  Check: az provider show --namespace Microsoft.SecurityCopilot --query registrationState"
+        Write-Host "  and confirm your subscription has Security Copilot preview access/quota in eastus."
+    }
+    Write-Host ""
+}
+
 # Get the Front Door hostname
 $Hostname = az afd endpoint show `
   --resource-group $RG `

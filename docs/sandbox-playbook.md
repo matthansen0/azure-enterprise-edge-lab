@@ -259,23 +259,41 @@ Keep deployment as an architecture talking point rather than a live coding exerc
 
 ---
 
+### C1b. Copilot in Log Analytics (Natural Language Queries)
+
+This is the free, built-in Copilot chat pane in the **Logs** blade — distinct from the paid Microsoft Security Copilot used in Section C3. No extra deployment or cost; it's available by default on every Log Analytics workspace.
+
+**Steps**:
+1. From `afdemo-law` > **Logs**, the Copilot pane opens automatically (or select the Copilot icon in the query editor toolbar).
+2. Ask: *"Show WAF blocked requests grouped by rule in the last hour"* and let it generate and run the KQL.
+3. Ask a follow-up in plain language, e.g. *"Now break that down by client IP"* or *"Why did latency spike around 2pm today?"*.
+
+**Expected result**: Copilot drafts and runs KQL against `afdemo-law` directly from a natural-language prompt, without the presenter writing any query by hand.
+
+> Don't confuse this with Section C3's Microsoft Security Copilot — that's a separate, paid (SCU-billed) product focused on Sentinel incident investigation. This one is free and scoped to the Log Analytics workspace only.
+
+---
+
 ### C2. SOC / Sentinel Integration
 
 **Steps**:
-1. Open **Microsoft Sentinel** and select the `afdemo-law` workspace.
+1. Open **Microsoft Sentinel** (or the unified Defender portal at `security.microsoft.com`) and select the `afdemo-law` workspace.
 2. On **Overview**, show that Sentinel is onboarded to the same workspace used by the Front Door workbooks.
 3. Open **Content hub** and show the installed **Azure Web Application Firewall** and **Network Session Essentials** solutions.
-4. Open **Logs** or **Hunting** to show where WAF telemetry can support investigation.
-5. Open **Analytics** to explain where a scheduled detection would be created; do not create one during the visual demo.
-6. Use [SOC Automation Stub](soc-automation-stub.md) as the target workflow for incident creation and response automation.
+4. Open **Analytics** and show the deployed **WAF Block Events Detected** scheduled rule (>5 WAF blocks in a 5-minute window from the same rule/client IP).
+5. Trigger the rule live: send the SQL-injection-style test request from the sandbox website's WAF test control more than 5 times within 5 minutes.
+6. After a few minutes, open **Incidents** and show the auto-created incident — it already has the `waf-auto-triage` label and a "Review WAF block incident" task from the deployed automation rule.
+7. Use [SOC Automation Stub](soc-automation-stub.md) for the target Logic App notification workflow (Teams/email), which remains a documented extension point beyond the automation rule.
 
-**Expected result**: Sentinel and its content are active on `afdemo-law`. A custom scheduled analytics rule and automated incident are not assumed to be deployed.
+**Expected result**: A real Sentinel incident is created and auto-triaged on `afdemo-law` without any manual Content Hub or Analytics rule setup — this is deployed by Bicep, not a manual post-deployment step.
+
+> Microsoft has unified the day-to-day Sentinel experience into the Defender portal (`security.microsoft.com`). Needing to work from there is expected, not a deployment problem — the WAF content and analytics rule are still installed and running underneath, deployed automatically as part of this sandbox.
 
 ---
 
 ### C3. Security Copilot — AI-Assisted SOC (Live)
 
-**Optional prerequisite**: This section requires the opt-in `afdemo-seccopilot` capacity, Security Copilot access, and the Microsoft Sentinel plugin to be configured before the session. The default deployment does not create paid capacity.
+**Optional prerequisite**: This section requires the opt-in `afdemo-seccopilot` capacity, Security Copilot access, and the Microsoft Sentinel plugin to be configured before the session. The default deployment does not create paid capacity. See [SOC Automation Stub \u2014 Before You Enable This](soc-automation-stub.md#before-you-enable-this) for the full prerequisites (resource provider registration, portal access, verification) before the session.
 
 **Steps**:
 
