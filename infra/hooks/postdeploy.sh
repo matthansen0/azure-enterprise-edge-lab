@@ -14,6 +14,23 @@ PREFIX="${DEMO_PREFIX:-afdemo}"
 PROFILE="${PREFIX}-afd"
 ENDPOINT_NAME="${PREFIX}-endpoint"
 
+# ---------------------------------------------------------------------------
+# If Security Copilot capacity was requested, verify it actually exists —
+# a silent skip (e.g. RP not registered, quota, region) should be visible.
+# ---------------------------------------------------------------------------
+if [ "$(echo "${DEPLOY_SECURITY_COPILOT:-false}" | tr '[:upper:]' '[:lower:]')" = "true" ]; then
+  CAPACITY_NAME="${PREFIX}-seccopilot"
+  echo "DEPLOY_SECURITY_COPILOT=true — verifying '$CAPACITY_NAME' capacity was actually created..."
+  if az resource show --resource-group "$RG" --resource-type Microsoft.SecurityCopilot/capacities --name "$CAPACITY_NAME" -o none 2>/dev/null; then
+    echo "✅ Security Copilot capacity '$CAPACITY_NAME' exists."
+  else
+    echo "❌ Security Copilot capacity '$CAPACITY_NAME' was NOT found, even though DEPLOY_SECURITY_COPILOT=true."
+    echo "   Check: az provider show --namespace Microsoft.SecurityCopilot --query registrationState"
+    echo "   and confirm your subscription has Security Copilot preview access/quota in eastus."
+  fi
+  echo ""
+fi
+
 # Get the Front Door hostname
 HOSTNAME=$(az afd endpoint show \
   --resource-group "$RG" \
@@ -51,7 +68,7 @@ while [ $SECONDS -lt $MAX_WAIT ]; do
     echo "  Homepage : https://${HOSTNAME}/"
     echo "  Health   : https://${HOSTNAME}/api/health"
     echo ""
-    exit 0
+    break
   fi
 
   ELAPSED_MIN=$((SECONDS / 60))
@@ -60,11 +77,14 @@ while [ $SECONDS -lt $MAX_WAIT ]; do
   sleep "$INTERVAL"
 done
 
-echo ""
-echo "⚠  Endpoint did not return HTTP 200 within $((MAX_WAIT / 60)) minutes."
-echo "   The endpoint may still be propagating. Keep checking manually:"
-echo ""
-echo "   curl -sI https://${HOSTNAME}/api/health"
-echo "   curl -s  https://${HOSTNAME}/"
-echo ""
+if [ "$HTTP_CODE" != "200" ]; then
+  echo ""
+  echo "⚠  Endpoint did not return HTTP 200 within $((MAX_WAIT / 60)) minutes."
+  echo "   The endpoint may still be propagating. Keep checking manually:"
+  echo ""
+  echo "   curl -sI https://${HOSTNAME}/api/health"
+  echo "   curl -s  https://${HOSTNAME}/"
+  echo ""
+fi
+
 exit 0  # Don't fail the deployment — propagation may just need more time

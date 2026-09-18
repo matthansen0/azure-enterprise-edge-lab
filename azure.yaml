@@ -10,12 +10,14 @@ infra:
   provider: bicep
   path: infra/bicep
 
-# hooks:
-#   preprovision:
-#     shell: sh
-#     run: bash infra/hooks/preprovision.sh
-
 hooks:
+  preprovision:
+    windows:
+      shell: pwsh
+      run: pwsh -File infra/hooks/preprovision.ps1
+    posix:
+      shell: sh
+      run: bash infra/hooks/preprovision.sh
   postdeploy:
     windows:
       shell: pwsh
