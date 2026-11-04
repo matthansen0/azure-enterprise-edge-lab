@@ -32,12 +32,20 @@ WAF Block Events → Sentinel Analytics Rule → Sentinel Incident
 - **Severity**: Medium
 - **Tactic**: Initial Access
 
+The typed empty input lets the rule validate in a fresh workspace before Front Door
+logs (and their dynamic columns) exist. It contributes no events and does not change
+the detection threshold once logs arrive.
+
 ```kql
-AzureDiagnostics
+union isfuzzy=true AzureDiagnostics, (datatable(
+    TimeGenerated:datetime, ResourceProvider:string, Category:string,
+    action_s:string, ruleName_s:string, clientIP_s:string
+) [])
 | where ResourceProvider == "MICROSOFT.CDN" and Category == "FrontDoorWebApplicationFirewallLog"
 | where action_s == "Block"
 | summarize BlockCount = count() by bin(TimeGenerated, 5m), ruleName_s, clientIP_s
 | where BlockCount > 5
+| project TimeGenerated, ruleName_s, clientIP_s, BlockCount
 ```
 
 ## Automation Rule (Deployed via Bicep)

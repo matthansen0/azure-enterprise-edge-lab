@@ -1,0 +1,94 @@
+const { test } = require("node:test");
+const assert = require("node:assert/strict");
+const { fingerprint, syncIssue } = require("../../.github/scripts/lab-rot-issues.cjs");
+
+function findings({ days = 976, path = "/home/runner/work/repo/repo", line = 29, accepted = "2025-01-01", api = "2024-03-01" } = {}) {
+  return `### Stale Bicep API versions\n\n\`\`\`\n${path}/infra/bicep/modules/origin-webapp.bicep(${line},49) : Warning use-recent-api-versions: Use more recent API version for 'Microsoft.App/managedEnvironments'. '${api}' is ${days} days old, should be no more than 730 days old, or the most recent. Acceptable versions: ${accepted} [https://aka.ms/bicep/linter-diagnostics#use-recent-api-versions]\n\`\`\``;
+}
+
+function client(issues) {
+  const created = [];
+  return {
+    created,
+    github: {
+      paginate: async (_method, options) => {
+        assert.equal(options.state, "all");
+        assert.equal(options.per_page, 100);
+        assert.equal(options.labels, "lab-rot");
+        return issues;
+      },
+      rest: {
+        issues: {
+          listForRepo: () => {},
+          create: async (issue) => {
+            created.push(issue);
+            return { data: { number: 42 } };
+          },
+        },
+      },
+    },
+    context: { repo: { owner: "owner", repo: "repo" } },
+  };
+}
+
+test("API age identity ignores age, runner paths, source positions and suggested versions", () => {
+  assert.equal(fingerprint(findings()), fingerprint(findings({
+    days: 983, path: "/different/workspace", line: 35, accepted: "2026-07-01, 2025-01-01",
+  })));
+});
+
+test("identity preserves API, resource and non-age finding changes", () => {
+  assert.notEqual(fingerprint(findings()), fingerprint(findings({ api: "2025-01-01" })));
+  assert.notEqual(fingerprint(findings()), fingerprint(findings().replace("managedEnvironments", "containerApps")));
+  assert.notEqual(fingerprint(findings()), fingerprint(`${findings()}\n### Broken external links\nhttps://example.com/broken`));
+});
+
+test("normalization is insensitive to ordering and repeated diagnostics", () => {
+  assert.equal(fingerprint("a\nb\na\n\n"), fingerprint("b\na"));
+});
+
+for (const state of ["open", "closed"]) {
+  test(`legacy ${state} reports suppress weekly duplicates when open or explicitly declined`, async () => {
+    const mock = client([{
+      number: 18,
+      state,
+      state_reason: state === "closed" ? "not_planned" : null,
+      body: `Weekly report\n\n${findings()}\n\n---\n- [x] Triaged\n<!-- lab-rot-fingerprint:old-hash -->`,
+    }]);
+    assert.equal(await syncIssue({ ...mock, findings: findings({ days: 1000 }) }), 18);
+    assert.equal(mock.created.length, 0);
+  });
+}
+
+test("marker retains identity after a maintainer edits the report", async () => {
+  const mock = client([{ number: 18, state: "closed", state_reason: "not_planned", body: `Triaged.\n<!-- lab-rot-fingerprint:${fingerprint(findings())} -->` }]);
+  assert.equal(await syncIssue({ ...mock, findings: findings() }), 18);
+  assert.equal(mock.created.length, 0);
+});
+
+test("genuinely new findings create an issue with stable marker and advisory context", async () => {
+  const mock = client([]);
+  assert.equal(await syncIssue({ ...mock, findings: findings() }), 42);
+  assert.equal(mock.created.length, 1);
+  assert.ok(mock.created[0].body.includes(`lab-rot-fingerprint:${fingerprint(findings())}`));
+  assert.match(mock.created[0].body, /not evidence of retirement/);
+});
+
+test("a completed fix does not suppress a later recurrence of the same findings", async () => {
+  const mock = client([{ number: 18, state: "closed", state_reason: "completed", body: findings() }]);
+  assert.equal(await syncIssue({ ...mock, findings: findings() }), 42);
+  assert.equal(mock.created.length, 1);
+});
+
+test("pull requests are not treated as triaged issues", async () => {
+  const mock = client([{ number: 18, pull_request: {}, body: findings() }]);
+  await syncIssue({ ...mock, findings: findings() });
+  assert.equal(mock.created.length, 1);
+});
+
+test("empty findings and GitHub failures are explicit errors", async () => {
+  const mock = client([]);
+  await assert.rejects(syncIssue({ ...mock, findings: "" }), /empty/);
+  mock.github.paginate = async () => { throw new Error("GitHub unavailable"); };
+  await assert.rejects(syncIssue({ ...mock, findings: findings() }), /GitHub unavailable/);
+});

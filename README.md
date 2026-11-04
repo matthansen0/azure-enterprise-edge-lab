@@ -77,6 +77,60 @@ azd down              # Deletes all provisioned resources
 
 See the [Visual Demo Lab Guide](docs/sandbox-playbook.md) for a portal-first walkthrough driven by the live website controls.
 
+## Validation and lab-rot triage
+
+```bash
+bash scripts/test.sh       # All API, site, watcher and compiled-IaC regressions + ShellCheck
+```
+
+Install API dependencies with `cd apps/api && npm ci` if they are missing.
+The full suite also requires Azure CLI/Bicep and ShellCheck (included in the dev container).
+
+For a deployed lab, run the read-only live smoke/regression suite after propagation:
+
+```bash
+SMOKE_BASE_URL="https://<front-door-hostname>" \
+SMOKE_FRONT_DOOR=true \
+SMOKE_ORIGIN_A_URL="https://<origin-a-hostname>" \
+SMOKE_ORIGIN_B_URL="https://<origin-b-hostname>" \
+node scripts/smoke-test.mjs
+```
+
+This checks the site, static TTLs, all API endpoints, credential redaction, query-string
+cache isolation, HTTP-to-HTTPS redirects, safe WAF demos (including lowercase transforms),
+and an actual edge cache HIT. Both origin URLs are optional but recommended to verify
+each region independently. For local application-only smoke tests, omit `SMOKE_FRONT_DOOR`
+and use `SMOKE_BASE_URL=http://localhost:8080`.
+
+To test failover, disable origin A using [toggle-failover.sh](scripts/toggle-failover.sh),
+wait for propagation, and rerun with `SMOKE_EXPECTED_ORIGIN=b`. Always re-enable A,
+then verify recovery with `SMOKE_EXPECTED_ORIGIN=a`. The smoke suite itself does not mutate Azure.
+
+Validate the deployed Sentinel query against Azure's KQL engine (requires `az login`
+and workspace query permissions):
+
+```bash
+SMOKE_WORKSPACE_ID="<Log Analytics workspace customer ID>" node scripts/test-sentinel-query.mjs
+```
+
+This tests the actual query, missing-table/missing-column cold starts, and synthetic
+events at the five/six-block threshold, including client/time-bin isolation and allow
+events. Synthetic events are query-local; nothing is ingested into the workspace.
+
+The weekly [lab-rot watcher](.github/workflows/lab-rot-watch.yml) is advisory, not a deployment
+test. Prioritize broken deployment paths, unsafe configuration and learner-facing failures.
+An API's age alone does not establish retirement or justify changing a working deployment;
+verify provider support before upgrading. In particular, do not downgrade
+`diagnosticSettings@2021-05-01-preview` to an older GA API merely to quiet the age linter.
+Keep age warnings visible for review.
+
+Reports are deduplicated by finding identity (file, resource type and API version), not
+changing age counts, runner paths, source positions or the latest suggested versions.
+An unchanged report already tracked in an open issue or explicitly closed as **not planned**
+does not create another issue or weekly comment. New findings, or a recurrence after a
+**completed** fix, still create a report. Close stale/duplicate reports as not planned with
+a rationale and retain one actionable tracker when real work remains.
+
 ## Documentation Index
 
 | Document | Description |

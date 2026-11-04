@@ -125,8 +125,12 @@ resource wafBlockAlertRule 'Microsoft.SecurityInsights/alertRules@2024-01-01-pre
     description: 'Detects more than 5 Front Door WAF blocks in a 5-minute window for the same rule/client IP.'
     severity: 'Medium'
     enabled: true
+    // Keep the schema valid before the first Front Door diagnostics arrive.
     query: '''
-AzureDiagnostics
+union isfuzzy=true AzureDiagnostics, (datatable(
+    TimeGenerated:datetime, ResourceProvider:string, Category:string,
+    action_s:string, ruleName_s:string, clientIP_s:string
+) [])
 | where ResourceProvider == "MICROSOFT.CDN" and Category == "FrontDoorWebApplicationFirewallLog"
 | where action_s == "Block"
 | summarize BlockCount = count() by bin(TimeGenerated, 5m), ruleName_s, clientIP_s
