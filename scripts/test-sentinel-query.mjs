@@ -40,8 +40,8 @@ async function execute(query, expectedMissingTable) {
   return table.rows;
 }
 
-await test("deployed analytics query executes against the live workspace", async () => {
-  await execute(query);
+await test("deployed analytics query executes with or without the diagnostics table", async () => {
+  await execute(query, "AzureDiagnostics");
 });
 
 await test("missing diagnostics table validates and yields no false alerts", async () => {

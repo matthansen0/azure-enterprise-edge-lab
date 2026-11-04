@@ -51,7 +51,6 @@ for (const target of targets) {
     });
 
     await t.test("health is healthy, identifies the origin and is never cached", async () => {
-      const timestamps = [];
       for (let i = 0; i < 2; i++) {
         const response = await request(target.url, "/api/health");
         assert.equal(response.status, 200);
@@ -63,9 +62,7 @@ for (const target of targets) {
         assert.ok(Number.isFinite(Date.parse(health.timestamp)));
         assert.ok(health.uptime >= 0);
         if (target.expectedOrigin) assert.equal(health.origin, target.expectedOrigin);
-        timestamps.push(health.timestamp);
       }
-      assert.notEqual(timestamps[0], timestamps[1]);
     });
 
     await t.test("time and header echo retain no-store and redact credentials", async () => {

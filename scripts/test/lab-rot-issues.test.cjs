@@ -76,10 +76,30 @@ test("genuinely new findings create an issue with stable marker and advisory con
   assert.match(mock.created[0].body, /not evidence of retirement/);
 });
 
-test("a completed fix does not suppress a later recurrence of the same findings", async () => {
+test("a completed fix does not suppress a recurrence", async () => {
   const mock = client([{ number: 18, state: "closed", state_reason: "completed", body: findings() }]);
   assert.equal(await syncIssue({ ...mock, findings: findings() }), 42);
   assert.equal(mock.created.length, 1);
+});
+
+test("a later completed tracker supersedes an older declined duplicate", async () => {
+  const body = findings();
+  const mock = client([
+    { number: 18, state: "closed", state_reason: "not_planned", closed_at: "2026-10-01T00:00:00Z", body },
+    { number: 42, state: "closed", state_reason: "completed", closed_at: "2026-11-02T00:00:00Z", body },
+  ]);
+  assert.equal(await syncIssue({ ...mock, findings: body }), 42);
+  assert.equal(mock.created.length, 1);
+});
+
+test("the newest declined tracker suppresses older completed trackers regardless of API ordering", async () => {
+  const body = findings();
+  const mock = client([
+    { number: 42, state: "closed", state_reason: "not_planned", closed_at: "2026-11-02T00:00:00Z", body },
+    { number: 18, state: "closed", state_reason: "completed", closed_at: "2026-10-01T00:00:00Z", body },
+  ]);
+  assert.equal(await syncIssue({ ...mock, findings: body }), 42);
+  assert.equal(mock.created.length, 0);
 });
 
 test("the first report creates the watcher label if missing", async () => {

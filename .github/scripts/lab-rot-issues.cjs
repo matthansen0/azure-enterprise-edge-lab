@@ -27,11 +27,15 @@ async function syncIssue({ github, context, findings }) {
   const issues = await github.paginate(github.rest.issues.listForRepo, {
     owner, repo, labels: "lab-rot", state: "all", per_page: 100,
   });
-  const existing = issues.find((issue) => !issue.pull_request &&
-    (issue.state === "open" || (issue.state === "closed" && issue.state_reason === "not_planned")) && (
+  const matching = issues.filter((issue) => !issue.pull_request && (
     issue.body?.includes(marker) ||
     fingerprint(reportedFindings(issue.body ?? "")) === hash
   ));
+  const latestClosed = matching
+    .filter((issue) => issue.state === "closed")
+    .sort((a, b) => Date.parse(b.closed_at ?? "") - Date.parse(a.closed_at ?? "") || b.number - a.number)[0];
+  const existing = matching.find((issue) => issue.state === "open") ??
+    (latestClosed?.state_reason === "not_planned" ? latestClosed : undefined);
   if (existing) {
     console.log(`Unchanged findings already tracked or declined in #${existing.number} (${existing.state}); no new issue or comment.`);
     return existing.number;
