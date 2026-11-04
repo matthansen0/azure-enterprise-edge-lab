@@ -167,54 +167,10 @@ jobs:
 
       - name: Open or update lab-rot issue
         if: steps.collect.outputs.has_findings == 'true'
+        uses: actions/github-script@v8
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           FINDINGS: ${{ steps.collect.outputs.findings }}
-        run: |
-          set -euo pipefail
-          gh label create lab-rot \
-            --description 'Lab-rot watch findings' \
-            --color FBCA04 \
-            2>/dev/null || true
-
-          run_date="$(date -u +%Y-%m-%d)"
-          findings_hash="$(printf '%s' "$FINDINGS" | sha256sum | awk '{print $1}')"
-          marker="<!-- lab-rot-fingerprint:${findings_hash} -->"
-          title="Lab rot watch: review needed (week of ${run_date})"
-
-          body=$(cat <<EOF
-          Weekly static-analysis sweep flagged potential drift. **No live deployment was performed.**
-
-          $FINDINGS
-
-          ---
-          - [ ] Triaged
-          - [ ] Action taken (fix, follow-up issue, or close as not-a-problem)
-
-          $marker
-
-          _Auto-opened by [.github/workflows/lab-rot-watch.yml](.github/workflows/lab-rot-watch.yml)._ 
-          EOF
-          )
-
-          existing=''
-          open_issue_numbers=$(gh issue list --label lab-rot --state open --json number --jq '.[].number' || true)
-          if [[ -n "$open_issue_numbers" ]]; then
-            for issue_number in $open_issue_numbers; do
-              if gh issue view "$issue_number" --json body,comments \
-                | jq -e --arg marker "$marker" --arg findings "$FINDINGS" '(.body // "" | contains($marker) or contains($findings)) or ((.comments // []) | map((.body // "") | contains($marker) or contains($findings)) | any)' >/dev/null; then
-                existing="$issue_number"
-                break
-              fi
-            done
-          fi
-
-          if [[ -n "$existing" ]]; then
-            gh issue comment "$existing" --body "Lab rot watch rerun on ${run_date}: same findings still present.\n\n${marker}"
-          else
-            gh issue create \
-              --title "$title" \
-              --body "$body" \
-              --label lab-rot \
-              --assignee "${GITHUB_REPOSITORY_OWNER}"
-          fi
+        with:
+          script: |
+            const { syncIssue } = require('./.github/scripts/lab-rot-issues.cjs');
+            await syncIssue({ github, context, findings: process.env.FINDINGS });
