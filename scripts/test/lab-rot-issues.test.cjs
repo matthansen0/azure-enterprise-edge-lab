@@ -20,6 +20,8 @@ function client(issues) {
       rest: {
         issues: {
           listForRepo: () => {},
+          getLabel: async () => ({ data: { name: "lab-rot" } }),
+          createLabel: async () => { throw new Error("Existing labels must not be recreated"); },
           create: async (issue) => {
             created.push(issue);
             return { data: { number: 42 } };
@@ -78,6 +80,24 @@ test("a completed fix does not suppress a later recurrence of the same findings"
   const mock = client([{ number: 18, state: "closed", state_reason: "completed", body: findings() }]);
   assert.equal(await syncIssue({ ...mock, findings: findings() }), 42);
   assert.equal(mock.created.length, 1);
+});
+
+test("the first report creates the watcher label if missing", async () => {
+  const mock = client([]);
+  mock.github.rest.issues.getLabel = async () => { throw Object.assign(new Error("Not Found"), { status: 404 }); };
+  let createdLabel;
+  mock.github.rest.issues.createLabel = async (label) => { createdLabel = label; };
+  await syncIssue({ ...mock, findings: findings() });
+  assert.equal(createdLabel.name, "lab-rot");
+  assert.equal(createdLabel.color, "FBCA04");
+  assert.equal(mock.created.length, 1);
+});
+
+test("label permission errors do not silently create an unlabelled issue", async () => {
+  const mock = client([]);
+  mock.github.rest.issues.getLabel = async () => { throw Object.assign(new Error("Forbidden"), { status: 403 }); };
+  await assert.rejects(syncIssue({ ...mock, findings: findings() }), /Forbidden/);
+  assert.equal(mock.created.length, 0);
 });
 
 test("pull requests are not treated as triaged issues", async () => {

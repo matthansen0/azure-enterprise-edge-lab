@@ -37,6 +37,15 @@ async function syncIssue({ github, context, findings }) {
     return existing.number;
   }
 
+  try {
+    await github.rest.issues.getLabel({ owner, repo, name: "lab-rot" });
+  } catch (error) {
+    if (error.status !== 404) throw error;
+    await github.rest.issues.createLabel({
+      owner, repo, name: "lab-rot", description: "Lab-rot watch findings", color: "FBCA04",
+    });
+  }
+
   const { data } = await github.rest.issues.create({
     owner,
     repo,
